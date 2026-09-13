@@ -7,6 +7,10 @@ Windows artifact: `exports/windows/Replayborn.exe`
 Touch control is invisible and dynamic: touch and drag anywhere inside the arena below the top HUD. No joystick graphic appears.
 
 Normal runs contain 10 selected-map levels. Each level spawns its map-specific enemy order and ends with a scaled boss; defeating the boss unlocks the next level. Defeating level 10 completes the map. Practice mode remains a five-minute fast test without the level-boss progression.
+
+Character and map selection are separate menu screens with visual thumbnail cards. The current selection is persisted in the profile.
+
+The loadout/shop layer has five slots (shirt, pants, shoes, armor, weapon), five rarities (Common, Rare, Legendary, Mythic, Ancient), per-slot shards, shared upgrade cores, gold, mission rewards and daily free chest cooldowns. Chest purchases currently use in-game gold; payment gateway integration remains intentionally unimplemented pending provider/store requirements.
 Android debug artifact: `exports/android/Replayborn-debug.apk`
 
 Validation:

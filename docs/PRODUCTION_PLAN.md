@@ -62,6 +62,8 @@ Rủi ro chính: bản sao khó đọc/ít chiến thuật, cảm ứng khó tr�
 
 - Đợt 4: thêm 10 map dữ liệu hóa, mỗi map có bảng thứ tự quái, màu nền, nhịp spawn và hệ số boss riêng. Trận thường có 10 level; mỗi level kết thúc bằng một boss, hạ boss mới mở level tiếp theo. Map cuối thắng sau boss level 10; Practice vẫn là chế độ 5 phút. Menu đã có chọn map. Resource validation 65 file/0 lỗi; prototype/session/run smoke PASS.
 
+- Đợt 5: thêm meta progression offline: loadout áo/quần/giày/giáp/vũ khí, 5 bậc hiếm, mảnh theo slot, lõi nâng cấp chung, vàng, nhiệm vụ nhận thưởng, rương miễn phí theo chu kỳ và rương mở bằng vàng. Trang phục giáp/giày đã ảnh hưởng trực quan nhân vật. Chưa kết nối payment thật; cần quyết định store/provider và quy trình pháp lý trước khi làm phần đó.
+
 
 - Trạng thái cập nhật: nền tảng production đã tách combat/director/recorder/profile; menu chọn 3 vũ khí và 10 nhân vật procedural (5 archetype × nam/nữ), 15 nâng cấp, 5 loại địch, 2 elite, boss phút 10, chế độ tập luyện 5 phút, Việt/Anh, profile JSON có backup, âm lượng/nhạc/giảm hiệu ứng, palette mở khóa. Bộ kiểm tra tài nguyên 54 file/0 lỗi; prototype/session/run smoke PASS; stress 70 địch + 600 đạn thân thiện + 240 đạn địch: median 9.6 ms, p95 16.3 ms, max 22.9 ms, static memory ~91 MB. Đã chạy renderer Mobile trên GPU Intel và chụp QA các màn hình. Đã tạo Windows executable và Android debug APK; chưa có Android device kết nối. Chưa phải release production: cần playtest Android, sửa ngưỡng hiệu năng p95, Android SDK/JDK chuẩn, signing keystore phát hành và quyết định nền tảng/phát hành.
 

@@ -13,6 +13,8 @@ var accent: Color = Color("62eacb")
 var skin: Color = Color("f2b58f")
 var hair: Color = Color("26344f")
 var pulse: float = 0.0
+var equipment: Dictionary = {}
+var rarity_colors: Array[Color] = [Color("b8c3d1"), Color("65b7ff"), Color("c77dff"), Color("ff70c8"), Color("ffd166")]
 
 func configure_character(index: int) -> void:
 	character_index = clampi(index, 0, 9)
@@ -22,6 +24,10 @@ func configure_character(index: int) -> void:
 	accent = accents[archetype]
 	skin = [Color("f2b58f"), Color("c98262"), Color("edc29e"), Color("9d604b"), Color("f0a982")][character_index % 5]
 	hair = [Color("26344f"), Color("563d72"), Color("172c38"), Color("773e45"), Color("392a24")][archetype]
+	queue_redraw()
+
+func configure_equipment(loadout: Dictionary) -> void:
+	equipment = loadout
 	queue_redraw()
 
 func advance(delta: float) -> void:
@@ -68,6 +74,14 @@ func draw_humanoid(body: Vector2, torso: PackedVector2Array, head_radius: float)
 	draw_line(body + Vector2(-12, 29 + leg_offset), body + Vector2(-3, 29 + leg_offset), Color("e9f1fa"), 4)
 	draw_line(body + Vector2(12, 29 - leg_offset), body + Vector2(21, 29 - leg_offset), Color("e9f1fa"), 4)
 	draw_colored_polygon(torso, accent)
+	var armor: Dictionary = equipment.get("GIÁP", {})
+	var armor_level: int = int(armor.get("rarity", 0))
+	var armor_color: Color = rarity_colors[clampi(armor_level, 0, rarity_colors.size() - 1)]
+	draw_line(body + Vector2(-14, 8), body + Vector2(14, 8), armor_color, 4 + armor_level)
+	var boots: Dictionary = equipment.get("GIÀY", {})
+	var boot_color: Color = rarity_colors[clampi(int(boots.get("rarity", 0)), 0, rarity_colors.size() - 1)]
+	draw_line(body + Vector2(-12, 29 + leg_offset), body + Vector2(-3, 29 + leg_offset), boot_color, 4)
+	draw_line(body + Vector2(12, 29 - leg_offset), body + Vector2(21, 29 - leg_offset), boot_color, 4)
 	draw_polyline(torso + PackedVector2Array([torso[0]]), Color(accent.lightened(0.38)), 3)
 	draw_circle(body + Vector2(0, -17), head_radius, skin)
 	draw_arc(body + Vector2(0, -18), head_radius + 2, PI, TAU, 20, hair, 7)

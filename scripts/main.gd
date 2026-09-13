@@ -51,6 +51,7 @@ func _ready() -> void:
 	director = Director.new(self)
 	player.arena = ARENA
 	player.configure_character(profile.data.character)
+	player.configure_equipment(profile.data.equipment)
 	profile.settings_changed.connect(apply_settings)
 	apply_settings()
 	hud.bind_game(self)

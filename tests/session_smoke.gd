@@ -45,6 +45,20 @@ func run() -> void:
 	check(not paused, "upgrade selection resumes")
 	game.sound.set_levels(0, 0)
 	check(game.sound.muted, "mute")
+	# Meta progression: equipment upgrade, free chest and paid chest economy.
+	var economy = load("res://scripts/core/profile.gd").new()
+	economy.save_path = "user://qa_economy_" + str(Time.get_ticks_usec()) + ".json"
+	root.add_child(economy)
+	economy.data.shards["ÁO"] = 100
+	economy.data.upgrade_core = 100
+	check(economy.upgrade_equipment("ÁO"), "equipment upgrade")
+	check(economy.data.equipment["ÁO"].level == 2, "equipment level")
+	var chest: Dictionary = economy.open_chest("GIÀY", 2, false)
+	check(not chest.is_empty() and economy.data.shards["GIÀY"] > 10, "free chest")
+	economy.data.gold = 10000
+	var paid: Dictionary = economy.open_chest("VŨ KHÍ", 3, true)
+	check(not paid.is_empty() and paid.rarity == 3, "paid mythic chest")
+	economy.queue_free()
 	# Test storage with an isolated path; never overwrite the real player profile.
 	var store = load("res://scripts/core/profile.gd").new()
 	store.save_path = "user://qa_profile_" + str(Time.get_ticks_usec()) + ".json"

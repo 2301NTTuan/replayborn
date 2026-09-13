@@ -44,6 +44,10 @@ See docs/PRODUCTION_PLAN.md for scope, milestones and progress. ESC or PAUSE ope
 
 Touch control is now invisible and dynamic: touch and drag anywhere inside the arena below the HUD. No joystick graphic appears and no playfield space is reserved.
 
+The menu separates character and map selection. Each screen uses visual thumbnails: 10 character cards (five archetypes with male/female silhouettes) and 10 map cards showing their palette, motif, and 10-level/10-boss structure.
+
+The meta layer now includes five equipment slots, five rarity tiers, slot shards, shared upgrade cores, gold, missions, free chest cooldowns and paid-with-gold chest variants. Real-money payment is intentionally not connected; the shop marks that integration point for a future provider decision.
+
 
 The M1 run lasts 5 minutes. Runners enter after 20 seconds; chargers after 60 seconds telegraph before dashing. Every 30 seconds choose fire rate, movement speed or healing. Survive to 05:00 to win. Run tests/run_smoke.gd for progression checks; this test bypasses player damage and is not a balance test.
 

@@ -3,8 +3,8 @@
 [resource]
 script = ExtResource("1")
 id = "scatter"
-interval = 0.65
-damage = 2.0
+interval = 0.86
+damage = 1.50
 speed = 820.0
 pellets = 3
 spread = 0.18

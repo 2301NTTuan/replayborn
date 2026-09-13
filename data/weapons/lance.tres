@@ -3,8 +3,8 @@
 [resource]
 script = ExtResource("1")
 id = "lance"
-interval = 0.7
-damage = 3.0
+interval = 0.92
+damage = 2.10
 speed = 1250.0
 pellets = 1
 spread = 0

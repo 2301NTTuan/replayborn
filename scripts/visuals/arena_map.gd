@@ -5,12 +5,18 @@ var base: Color
 var accent: Color
 var map_id: String
 var phase: float = 0.0
+var ambient_points: Array[Vector2] = []
 
 func configure(value: Rect2, background: Color, map_accent: Color, id: String) -> void:
 	arena = value
 	base = background
 	accent = map_accent
 	map_id = id
+	ambient_points.clear()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = abs(hash(map_id)) + 7919
+	for index in range(34):
+		ambient_points.append(Vector2(rng.randf(), rng.randf()))
 	queue_redraw()
 
 func _process(delta: float) -> void:
@@ -39,6 +45,18 @@ func _draw() -> void:
 		draw_line(Vector2(x, inner.position.y), Vector2(x, inner.end.y), soft_line, 1)
 	for y in range(int(inner.position.y) + 44, int(inner.end.y), 104):
 		draw_line(Vector2(inner.position.x, y), Vector2(inner.end.x, y), soft_line, 1)
+	# Moving scanline, drifting motes and radar sweep keep the arena alive without obscuring combat.
+	var scan_y := inner.position.y + fmod(phase * 82.0, inner.size.y)
+	draw_line(Vector2(inner.position.x, scan_y), Vector2(inner.end.x, scan_y), Color(accent, 0.16), 2)
+	for index in range(ambient_points.size()):
+		var seed_point := ambient_points[index]
+		var drift := fmod(phase * (0.018 + float(index % 5) * 0.004) + seed_point.y, 1.0)
+		var point := Vector2(inner.position.x + seed_point.x * inner.size.x, inner.position.y + drift * inner.size.y)
+		var brightness := 0.18 + 0.12 * sin(phase * 2.0 + index)
+		draw_circle(point, 2.0 + float(index % 3), Color(accent, brightness))
+	var sweep_angle := phase * 0.42
+	var sweep_end := inner.get_center() + Vector2.from_angle(sweep_angle) * minf(inner.size.x, inner.size.y) * 0.46
+	draw_line(inner.get_center(), sweep_end, Color(accent, 0.09), 3)
 	# Broken circuit lanes avoid the perfectly even debug-grid look.
 	for lane in range(4):
 		var y := inner.position.y + 176.0 + lane * 274.0

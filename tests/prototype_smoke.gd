@@ -55,20 +55,20 @@ func run() -> void:
 	echo.advance()
 	check(game.combat.friendly.size() == 1, "first replay tick fires")
 	check(is_equal_approx(game.combat.friendly[0].damage, recorded_damage), "snapshot damage unaffected by later upgrade")
+	var echo_expired: bool = false
 	for tick in range(899):
-		echo.advance()
-	check(echo.tick == 0 and game.combat.friendly.size() == 2, "final shot plays before wrap")
-	echo.advance()
-	check(game.combat.friendly.size() == 3, "next loop fires tick zero again")
+		echo_expired = echo.advance()
+	check(echo_expired and echo.tick == 0 and game.combat.friendly.size() == 2, "echo ends after one 15s replay")
 	for index in range(5):
 		game.create_echo()
-	check(game.echoes.size() == 4, "echo cap")
+	check(game.echoes.size() == 1, "single echo cap")
 	# Sweep test: fast bullets cannot tunnel through a target.
 	game.combat.friendly.clear()
 	enemy.health = 1
 	var projectile: Dictionary = shots[0].duplicate(true)
 	projectile.position = Vector2(500, 1050)
 	projectile.velocity = Vector2(20000, 0)
+	projectile.damage = enemy.health
 	game.combat.add_shot(projectile)
 	game.combat.advance(1.0 / 60)
 	check(enemy.dead, "swept projectile hit")

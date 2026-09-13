@@ -8,11 +8,11 @@ var muted: bool = false
 var music_voice: AudioStreamPlayer
 
 func _ready() -> void:
-	for key in ["shot", "hit", "hurt", "echo", "upgrade", "win", "lose"]:
+	for key in ["shot", "hit", "hurt", "echo", "level_up", "upgrade", "win", "lose"]:
 		var params: Array = {
 			"shot": [850.0, 300.0, 0.055], "hit": [220.0, 90.0, 0.06],
 			"hurt": [170.0, 45.0, 0.22], "echo": [330.0, 880.0, 0.3],
-			"upgrade": [440.0, 1100.0, 0.22], "win": [440.0, 1320.0, 0.6],
+			"level_up": [520.0, 1560.0, 0.42], "upgrade": [440.0, 1100.0, 0.22], "win": [440.0, 1320.0, 0.6],
 			"lose": [220.0, 55.0, 0.5]
 		}[key]
 		samples[key] = make_tone(params[0], params[1], params[2])
@@ -22,7 +22,12 @@ func _ready() -> void:
 		add_child(voice)
 		voices[key] = voice
 	music_voice = AudioStreamPlayer.new()
-	music_voice.stream = make_music()
+	var licensed_loop := load("res://assets/audio/replayborn_tense_future_loop.ogg") as AudioStreamOggVorbis
+	if licensed_loop != null:
+		licensed_loop.loop = true
+		music_voice.stream = licensed_loop
+	else:
+		music_voice.stream = make_music()
 	music_voice.volume_db = -24
 	add_child(music_voice)
 	music_voice.play()

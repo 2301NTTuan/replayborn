@@ -13,6 +13,9 @@ var accent: Color = Color("62eacb")
 var skin: Color = Color("f2b58f")
 var hair: Color = Color("26344f")
 var pulse: float = 0.0
+var facing: Vector2 = Vector2.RIGHT
+var shoot_flash: float = 0.0
+var level_up_time: float = 0.0
 var equipment: Dictionary = {}
 var rarity_colors: Array[Color] = [Color("b8c3d1"), Color("65b7ff"), Color("c77dff"), Color("ff70c8"), Color("ffd166")]
 
@@ -32,16 +35,35 @@ func configure_equipment(loadout: Dictionary) -> void:
 
 func advance(delta: float) -> void:
 	hurt_time = maxf(0, hurt_time - delta)
+	shoot_flash = maxf(0, shoot_flash - delta)
+	level_up_time = maxf(0, level_up_time - delta)
 	pulse += delta
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if touch_direction.length_squared() > direction.length_squared():
 		direction = touch_direction
 	velocity = direction * speed if active else Vector2.ZERO
+	if direction.length_squared() > 0.01:
+		facing = direction.normalized()
 	move_and_slide()
 	position = position.clamp(arena.position + Vector2.ONE * 25, arena.end - Vector2.ONE * 25)
 	queue_redraw()
 
 func _draw() -> void:
+	var weapon_anchor := Vector2(0, -22)
+	var muzzle := weapon_anchor + facing * 34.0
+	draw_line(weapon_anchor - facing * 10.0, muzzle, Color("1c3148"), 9)
+	draw_line(weapon_anchor - facing * 4.0, muzzle, accent.lightened(0.32), 4)
+	if shoot_flash > 0.0:
+		draw_circle(muzzle, 12.0 * clampf(shoot_flash / 0.12, 0.0, 1.0), Color("fff2b0", 0.80))
+		draw_line(muzzle, muzzle + facing * 20.0, Color("fff2b0", 0.75), 3)
+	if level_up_time > 0.0:
+		var alpha := clampf(level_up_time / 0.35, 0.0, 1.0)
+		draw_string(ThemeDB.fallback_font, Vector2(-58, -112 - (1.0 - alpha) * 12.0), "LEVEL UP", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1.0, 0.82, 0.32, alpha))
+		draw_arc(Vector2.ZERO, 52.0 + (1.0 - alpha) * 18.0, 0, TAU, 32, Color(1.0, 0.82, 0.32, alpha * 0.7), 3)
+	var marker_y := -88.0 + sin(pulse * 4.0) * 3.0
+	draw_circle(Vector2(0, marker_y + 5), 10, Color(0.20, 0.95, 0.84, 0.10))
+	draw_colored_polygon(PackedVector2Array([Vector2(0, marker_y - 7), Vector2(8, marker_y), Vector2(0, marker_y + 7), Vector2(-8, marker_y)]), Color("d8fff8"))
+	draw_arc(Vector2(0, marker_y), 12, PI * 0.1, PI * 0.9, 12, Color("55ebd2"), 2)
 	if has_node("ArtVisual"):
 		if hurt_time > 0:
 			draw_arc(Vector2.ZERO, 42, 0, TAU, 32, Color("ff647b"), 5)
@@ -63,6 +85,14 @@ func _draw() -> void:
 			draw_circle(Vector2.ZERO, 28, Color(1, 0.3, 0.4, clampf(hurt_time, 0, 0.7)))
 	if velocity.length_squared() > 0:
 		draw_line(Vector2.ZERO, velocity.normalized() * 42, Color("f4f7ff"), 4)
+
+func register_shot() -> void:
+	shoot_flash = 0.12
+	queue_redraw()
+
+func show_level_up() -> void:
+	level_up_time = 1.6
+	queue_redraw()
 
 func draw_shadow_ellipse(center: Vector2, radius: Vector2, color: Color) -> void:
 	var points := PackedVector2Array()

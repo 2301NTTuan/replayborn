@@ -14,7 +14,7 @@ func _ready() -> void:
 	load_profile()
 
 func defaults() -> Dictionary:
-	return {"version": SCHEMA, "volume": 0.65, "music": 0.35, "reduced": false, "language": "vi", "tutorial": false, "runs": 0, "wins": 0, "kills": 0, "best_seconds": 0.0, "palette": 0, "weapon": 0, "character": 0, "map": 0, "gold": 500, "upgrade_core": 25, "equipment": default_equipment(), "shards": default_shards(), "chests": default_chests(), "missions": {"kills": 0, "wins": 0, "claimed_kills": false, "claimed_wins": false}}
+	return {"version": SCHEMA, "volume": 0.65, "music": 0.35, "reduced": false, "language": "vi", "tutorial": false, "runs": 0, "wins": 0, "kills": 0, "best_seconds": 0.0, "palette": 0, "weapon": 0, "character": 0, "map": 0, "gold": 500, "upgrade_core": 25, "meta_upgrades": {"hp": 0, "damage": 0, "armor": 0, "haste": 0}, "equipment": default_equipment(), "shards": default_shards(), "chests": default_chests(), "missions": {"kills": 0, "wins": 0, "claimed_kills": false, "claimed_wins": false}}
 
 func default_equipment() -> Dictionary:
 	var result := {}
@@ -74,6 +74,10 @@ func load_profile() -> void:
 			data.palette = 0
 		selected_weapon = data.weapon
 		data.gold = clampi(int(data.gold), 0, 2147483647) if data.gold is float or data.gold is int else 500
+		if not data.has("meta_upgrades") or not data.meta_upgrades is Dictionary:
+			data.meta_upgrades = defaults().meta_upgrades
+		for stat in ["hp", "damage", "armor", "haste"]:
+			data.meta_upgrades[stat] = clampi(int(data.meta_upgrades.get(stat, 0)), 0, 20)
 		data.upgrade_core = clampi(int(data.upgrade_core), 0, 2147483647) if data.upgrade_core is float or data.upgrade_core is int else 25
 		if not data.has("equipment") or not data.equipment is Dictionary:
 			data.equipment = default_equipment()
@@ -131,6 +135,18 @@ func add_rewards(gold: int, core: int, slot: String = "", shards: int = 0) -> vo
 	if slot in SLOTS:
 		data.shards[slot] = data.shards.get(slot, 0) + maxi(0, shards)
 	save_profile()
+
+func upgrade_meta(stat: String) -> bool:
+	if stat not in ["hp", "damage", "armor", "haste"]:
+		return false
+	var level: int = int(data.meta_upgrades.get(stat, 0))
+	var cost := 100 + level * 75
+	if data.gold < cost or level >= 20:
+		return false
+	data.gold -= cost
+	data.meta_upgrades[stat] = level + 1
+	save_profile()
+	return true
 
 func upgrade_equipment(slot: String) -> bool:
 	if slot not in SLOTS:

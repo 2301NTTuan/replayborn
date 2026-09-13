@@ -22,6 +22,7 @@ var skill_secondary: float = 2.7
 var skill_tertiary: float = 4.6
 var dash_time: float = 0.0
 var dash_vector: Vector2 = Vector2.ZERO
+var boss_target_range: float = 720.0
 
 func setup(data: Resource, owner_game: Node, variant: int, difficulty: float) -> void:
 	spec = data
@@ -33,6 +34,8 @@ func setup(data: Resource, owner_game: Node, variant: int, difficulty: float) ->
 	radius = data.radius * (1.2 if elite > 0 else 1.0)
 	speed = data.speed * (1.3 if elite == 1 else 1.0)
 	contact_damage = maxi(1, roundi(data.damage * (0.90 + (difficulty - 1.0) * 0.52))) + (5 if elite > 0 else 0)
+	if String(data.id).begins_with("boss_"):
+		boss_target_range = 620.0 + float(_boss_rank()) * 85.0
 	orbit_sign = -1 if randf() < 0.5 else 1
 
 func advance(delta: float) -> void:
@@ -43,6 +46,7 @@ func advance(delta: float) -> void:
 		return
 	cycle += delta
 	shot_time -= delta
+	select_target()
 	var direction: Vector2 = position.direction_to(target.position)
 	if String(spec.id).begins_with("boss_"):
 		_advance_boss(delta, direction)
@@ -76,6 +80,29 @@ func advance(delta: float) -> void:
 		shot_time = 2.8
 	position = position.clamp(game.ARENA.position + Vector2.ONE * radius, game.ARENA.end - Vector2.ONE * radius)
 	queue_redraw()
+
+func select_target() -> void:
+	if game == null or not is_instance_valid(game.player):
+		return
+	var is_boss := String(spec.id).begins_with("boss_")
+	var candidates: Array[Node2D] = [game.player]
+	for echo in game.echoes:
+		if is_instance_valid(echo) and not echo.dead:
+			candidates.append(echo)
+	var nearest: Node2D = null
+	var nearest_distance := INF
+	for candidate in candidates:
+		var distance := position.distance_to(candidate.position)
+		if is_boss and distance > boss_target_range:
+			continue
+		if distance < nearest_distance:
+			nearest_distance = distance
+			nearest = candidate
+	# Bosses keep pressuring the player if no replay object is inside their range.
+	if nearest == null:
+		target = game.player
+	else:
+		target = nearest
 
 func _advance_boss(delta: float, direction: Vector2) -> void:
 	# Every boss owns three independent attacks. The later variants use faster, denser patterns.

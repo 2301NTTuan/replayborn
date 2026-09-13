@@ -7,6 +7,7 @@ const HEROINE_SHEET = preload("res://assets/original_v1/astria_run_v1.png")
 var profile: Node
 var body: VBoxContainer
 var back_button: Button
+var subpage_active: bool = false
 
 func _ready() -> void:
 	profile = get_node("/root/Profile")
@@ -46,10 +47,16 @@ func _draw() -> void:
 	draw_rect(Rect2(60, 472, 430, 126), Color("386986"), false, 2)
 	draw_string(ThemeDB.fallback_font, Vector2(84, 512), "ASTRIA", HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color("effbff"))
 	draw_string(ThemeDB.fallback_font, Vector2(84, 548), "ECHO RUNNER  ·  LV.01", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("9bbbcf"))
-	draw_string(ThemeDB.fallback_font, Vector2(84, 578), "PULSE RIFLE  ·  READY", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("55ebd2"))
+	draw_string(ThemeDB.fallback_font, Vector2(84, 578), "WEAPON BONDED  ·  READY", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("55ebd2"))
+	if subpage_active:
+		# Opaque enough to separate secondary screens from the home hero, while
+		# retaining a hint of the neon environment underneath.
+		draw_rect(Rect2(0, 0, 1080, 1920), Color(0.015, 0.035, 0.065, 0.90))
 
 func show_home() -> void:
 	UI.clear(body)
+	subpage_active = false
+	queue_redraw()
 	back_button.hide()
 	UI.caption(body, "Trung tâm điều khiển", true)
 	var status := UI.card(body, Color("315976"))
@@ -58,30 +65,28 @@ func show_home() -> void:
 	record_label.add_theme_color_override("font_color", Color("a9c2d8"))
 	if not profile.warning.is_empty():
 		UI.label(body, t(profile.warning), 24, true)
-	var hub := UI.card(body, Color("315976"))
-	UI.caption(hub, "Trang bị & phát triển")
-	UI.label(hub, "ASTRIA  ·  TÀN TÍCH NEON", 25, true)
-	UI.button(hub, "◈  " + t("loadout"), show_loadout, 78)
-	UI.button(hub, "◇  " + t("shop"), show_shop, 78)
-	UI.button(hub, "✓  " + t("missions"), show_missions, 78)
-	UI.caption(body, t("weapon"))
-	var weapon_picker := OptionButton.new()
-	weapon_picker.custom_minimum_size.y = 90
-	for weapon in Catalog.WEAPONS:
-		weapon_picker.add_item(t(weapon.id))
-	weapon_picker.select(profile.selected_weapon)
-	body.add_child(weapon_picker)
-	var description := UI.label(body, t(Catalog.WEAPONS[profile.selected_weapon].id + "_desc"), 25)
-	weapon_picker.item_selected.connect(func(index: int) -> void:
-		profile.selected_weapon = index
-		profile.setting("weapon", index)
-		description.text = t(Catalog.WEAPONS[index].id + "_desc"))
 	UI.primary_button(body, "▶  " + t("start"), func() -> void: launch(false), 112).grab_focus()
-	UI.button(body, "◌  " + t("practice"), func() -> void: launch(true), 78)
+	UI.button(body, "⬆  Nâng cấp Player", show_player_upgrades, 78)
 	UI.button(body, "⚙  " + t("settings"), show_settings, 78)
 	UI.button(body, "?  " + t("help"), show_help, 78)
 	UI.danger_button(body, t("quit"), func() -> void: get_tree().quit(), 72)
 	UI.label(body, "1.0.0-rc.1  ·  OFFLINE", 23, true)
+
+func show_player_upgrades() -> void:
+	UI.clear(body)
+	show_back_button()
+	var header := UI.card(body, Color("ffd166"))
+	UI.label(header, "NÂNG CẤP PLAYER", 38, true)
+	UI.label(body, "Vàng hiện có: %d  ·  Mỗi cấp tăng hiệu quả trong mọi trận" % profile.data.gold, 23, true)
+	var labels := {"hp": "Máu tối đa  +15", "damage": "Damage  +5%", "armor": "Giáp  +1", "haste": "Tốc độ bắn  +5%"}
+	for stat in ["hp", "damage", "armor", "haste"]:
+		var level: int = int(profile.data.meta_upgrades.get(stat, 0))
+		var cost := 100 + level * 75
+		var card := UI.card(body, Color("315976"))
+		UI.label(card, "%s  ·  Cấp %d/20" % [labels[stat], level], 24, true)
+		UI.button(card, "NÂNG CẤP  ·  %d VÀNG" % cost, func() -> void:
+			if profile.upgrade_meta(stat):
+				show_player_upgrades(), 70)
 
 func show_loadout() -> void:
 	UI.clear(body)
@@ -165,7 +170,8 @@ func show_missions() -> void:
 func show_character_select() -> void:
 	UI.clear(body)
 	show_back_button()
-	UI.label(body, t("character_menu"), 44, true)
+	var header := UI.card(body, Color("55ebd2"))
+	UI.label(header, t("character_menu"), 38, true)
 	UI.label(body, "5 archetype × Nam/Nữ · chỉ số giống nhau, silhouette khác nhau", 23, true)
 	for index in range(10):
 		var thumb := CharacterThumb.new()
@@ -180,7 +186,8 @@ func show_character_select() -> void:
 func show_map_select() -> void:
 	UI.clear(body)
 	show_back_button()
-	UI.label(body, t("map_menu"), 44, true)
+	var header := UI.card(body, Color("55ebd2"))
+	UI.label(header, t("map_menu"), 38, true)
 	UI.label(body, "10 map · mỗi map 5 level · 3 loại quái/mức · 5 boss riêng", 23, true)
 	for index in range(Catalog.MAPS.size()):
 		var thumb := MapThumb.new()
@@ -199,16 +206,21 @@ func launch(practice: bool) -> void:
 func show_settings() -> void:
 	UI.clear(body)
 	show_back_button()
-	UI.label(body, t("settings"), 44)
+	var header := UI.card(body, Color("55ebd2"))
+	UI.label(header, t("settings"), 38, true)
 	UI.settings(body, profile, show_settings)
 
 func show_help() -> void:
 	UI.clear(body)
 	show_back_button()
-	UI.label(body, t("help"), 44)
-	UI.label(body, t("help_body"), 29)
+	var header := UI.card(body, Color("55ebd2"))
+	UI.label(header, t("help"), 38, true)
+	var guide := UI.card(body, Color("315976"))
+	UI.label(guide, t("help_body"), 23)
 
 func show_back_button() -> void:
+	subpage_active = true
+	queue_redraw()
 	back_button.text = "←  " + t("back")
 	back_button.show()
 	back_button.grab_focus()

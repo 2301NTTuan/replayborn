@@ -10,20 +10,32 @@ var character_index: int = 0
 var gender: int = 0
 var archetype: int = 0
 var motion: Vector2 = Vector2.ZERO
+var age: float = 0.0
+var health: float = 55.0
+var max_health: float = 55.0
+var hurt_time: float = 0.0
+var dead: bool = false
+var spawn_protection: float = 1.5
 
 func setup(recording: Dictionary, game: Node, serial: int) -> void:
 	tape = recording
 	arena_game = game
 	number = serial
 	position = tape.positions[0]
-	tint = [Color("86a8ff"), Color("ffd166"), Color("ee9bfa")][game.profile.data.palette]
+	tint = [Color("ff4fd8"), Color("ffd166"), Color("63f6ff")][game.profile.data.palette]
 	character_index = game.profile.data.character
 	gender = character_index % 2
 	archetype = character_index / 2
+	max_health = maxf(1.0, game.max_health * 0.70)
+	health = max_health
 
-func advance() -> void:
+func advance() -> bool:
 	if tape.is_empty():
-		return
+		return true
+	age += 1.0 / 60.0
+	hurt_time = maxf(0.0, hurt_time - 1.0 / 60.0)
+	spawn_protection = maxf(0.0, spawn_protection - 1.0 / 60.0)
+	var expired: bool = age >= 15.0
 	var next_position: Vector2 = tape.positions[tick + 1]
 	motion = next_position - position
 	position = next_position
@@ -38,8 +50,27 @@ func advance() -> void:
 		tick = 0
 		shot_index = 0
 	queue_redraw()
+	return expired
+
+func take_damage(amount: int) -> void:
+	if dead or spawn_protection > 0.0:
+		return
+	health = maxf(0.0, health - maxi(1, amount))
+	hurt_time = 0.22
+	if health <= 0:
+		dead = true
+	queue_redraw()
 
 func _draw() -> void:
+	if hurt_time > 0.0 and fmod(hurt_time * 30.0, 2.0) < 1.0:
+		modulate = Color("ff4b61")
+	else:
+		modulate = Color.WHITE
+	var health_ratio := clampf(health / max_health, 0.0, 1.0)
+	draw_line(Vector2(-27, -48), Vector2(27, -48), Color("160d20", 0.85), 5)
+	draw_line(Vector2(-27, -48), Vector2(-27 + 54 * health_ratio, -48), Color("ff647b"), 4)
+	if spawn_protection > 0.0:
+		draw_arc(Vector2.ZERO, 46.0 + sin(age * 12.0) * 3.0, 0, TAU, 32, Color("d7fbff", 0.82), 3)
 	if has_node("ArtVisual"):
 		draw_arc(Vector2.ZERO, 32, 0, TAU, 24, tint, 3)
 		draw_string(ThemeDB.fallback_font, Vector2(-7, 7), str(number), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("b2c6ff"))

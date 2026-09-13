@@ -7,9 +7,10 @@ const Director = preload("res://scripts/core/director.gd")
 const Enemy = preload("res://scripts/enemy.gd")
 const Echo = preload("res://scripts/echo.gd")
 const XPOrb = preload("res://scripts/xp_orb.gd")
+const GoldOrb = preload("res://scripts/gold_orb.gd")
 const ArtBridge = preload("res://scripts/visuals/art_bridge.gd")
 const SoundBank = preload("res://scripts/sound_bank.gd")
-const ARENA: Rect2 = Rect2(50, 310, 980, 1510)
+const ARENA: Rect2 = Rect2(50, 450, 980, 1370)
 enum State { PLAYING, PAUSED, UPGRADE, ENDED, TUTORIAL }
 var state: State = State.PLAYING
 @onready var player: CharacterBody2D = $Player
@@ -24,13 +25,14 @@ var director: RefCounted
 var recorder: RefCounted = Recorder.new()
 var enemies: Array = []
 var xp_orbs: Array = []
+var gold_orbs: Array = []
 var echoes: Array = []
 var upgrade_counts: Dictionary = {}
 var offers: Array = []
 var stats: Dictionary = {"damage": 0.0, "haste": 0, "pellets": 0, "pierce": 0, "bullet_speed": 0.0, "lifetime": 0.0, "armor": 0, "regen": 0, "echo_power": 0.0, "crit": 0.0, "siphon": 0, "grace": 0.0}
 var run_level: int = 1
 var run_xp: int = 0
-var xp_to_next: int = 18
+var xp_to_next: int = 30
 var health: float = 100
 var max_health: float = 100
 var damage_time: float = 0
@@ -45,11 +47,15 @@ var echo_serial: int = 0
 var boss: Node2D
 var boss_killed: bool = false
 var test_mode: bool = false
+var levelup_pending: bool = false
+var levelup_delay: float = 0.0
 
 func _ready() -> void:
 	profile = get_node("/root/Profile")
 	practice = profile.practice
-	weapon = Catalog.WEAPONS[clampi(profile.selected_weapon, 0, 2)]
+	# Weapons are bonded to the selected hero. The legacy profile.weapon value is
+	# retained for save compatibility, but is no longer used to choose a weapon.
+	weapon = Catalog.weapon_for_character(int(profile.data.character))
 	# Current vertical slice deliberately ships one hero and one arena.
 	map_data = Catalog.MAPS[0]
 	sound = SoundBank.new()
@@ -59,6 +65,12 @@ func _ready() -> void:
 	player.arena = ARENA
 	player.configure_character(0)
 	player.configure_equipment(profile.data.equipment)
+	var meta: Dictionary = profile.data.meta_upgrades
+	max_health += int(meta.get("hp", 0)) * 15
+	health = max_health
+	stats.damage = int(meta.get("damage", 0)) * 0.05
+	stats.armor = int(meta.get("armor", 0))
+	stats.haste = int(meta.get("haste", 0))
 	profile.settings_changed.connect(apply_settings)
 	apply_settings()
 	hud.bind_game(self)
@@ -78,7 +90,7 @@ func apply_settings() -> void:
 	if combat != null and reduced_effects:
 		combat.effects.clear()
 	for echo in echoes:
-		echo.tint = [Color("86a8ff"), Color("ffd166"), Color("ee9bfa")][profile.data.palette]
+		echo.tint = [Color("ff4fd8"), Color("ffd166"), Color("63f6ff")][profile.data.palette]
 
 func begin_play() -> void:
 	if state != State.TUTORIAL:
@@ -118,6 +130,12 @@ func _physics_process(delta: float) -> void:
 	# A single coordinator fixes movement, replay, collision and recording order.
 	run_tick += 1
 	run_time = run_tick / 60.0
+	if levelup_pending:
+		levelup_delay = maxf(0.0, levelup_delay - delta)
+		if levelup_delay <= 0.0:
+			levelup_pending = false
+			offer_upgrades()
+			return
 	damage_time = maxf(0, damage_time - delta)
 	health = minf(max_health, health + stats.regen * delta)
 	player.advance(delta)
@@ -135,9 +153,21 @@ func _physics_process(delta: float) -> void:
 				gain_xp(orb.value)
 			orb.queue_free()
 			xp_orbs.remove_at(index)
-	for echo in echoes:
-		echo.advance()
-		art.update_echo(echo)
+	for index in range(gold_orbs.size() - 1, -1, -1):
+		var gold: Node2D = gold_orbs[index]
+		if gold.advance(delta):
+			if gold.collected:
+				profile.add_rewards(gold.value, 0)
+				hud.show_pickup(gold.value, true)
+			gold.queue_free()
+			gold_orbs.remove_at(index)
+	for index in range(echoes.size() - 1, -1, -1):
+		var echo = echoes[index]
+		if echo.dead or echo.advance():
+			echo.queue_free()
+			echoes.remove_at(index)
+		else:
+			art.update_echo(echo)
 	var fired: Array = combat.fire(nearest_enemy(), delta)
 	if recorder.record(player.position, fired):
 		create_echo()
@@ -146,6 +176,9 @@ func _physics_process(delta: float) -> void:
 	for enemy in enemies:
 		if not enemy.dead and enemy.spawn_protection <= 0 and enemy.position.distance_to(player.position) < enemy.radius + 25:
 			take_damage(enemy.contact_damage)
+		for echo in echoes:
+			if not echo.dead and enemy.position.distance_to(echo.position) < enemy.radius + 25:
+				take_echo_damage(echo, enemy.contact_damage)
 	for index in range(enemies.size() - 1, -1, -1):
 		if enemies[index].dead:
 			enemies[index].queue_free()
@@ -158,6 +191,12 @@ func _physics_process(delta: float) -> void:
 		finish(false)
 	hud.refresh()
 	queue_redraw()
+
+func take_echo_damage(echo: Node2D, amount: int) -> void:
+	if echo.dead or echo.hurt_time > 0.0 or state != State.PLAYING:
+		return
+	echo.take_damage(amount)
+	sound.play("hurt")
 
 func nearest_enemy() -> Node2D:
 	var result: Node2D
@@ -203,17 +242,29 @@ func kill_enemy(enemy: Node2D) -> void:
 		return
 	enemy.dead = true
 	kills += 1
-	spawn_xp_orb(enemy.position, 5 + enemy.elite * 4 + (12 if String(enemy.spec.id).begins_with("boss_") else 0))
+	var enemy_id := String(enemy.spec.id)
+	var xp_tier := 3 if enemy_id.begins_with("boss_") else (2 if enemy.elite >= 2 else (1 if enemy.elite == 1 else 0))
+	var base_xp: int = int({"chaser": 3, "runner": 4, "charger": 5, "shooter": 6, "orbiter": 7}.get(enemy_id, 3))
+	var xp_value: int = int(base_xp) + enemy.elite * 5 + (15 if enemy_id.begins_with("boss_") else 0)
+	spawn_xp_orb(enemy.position, xp_value, xp_tier)
+	spawn_gold_orb(enemy.position, 25 if enemy_id.begins_with("boss_") else 2 + enemy.elite * 2)
 	health = minf(max_health, health + stats.siphon) if health > 0 else 0
 	if String(enemy.spec.id).begins_with("boss_"):
 		director.complete_boss()
 
-func spawn_xp_orb(at: Vector2, amount: int) -> void:
+func spawn_xp_orb(at: Vector2, amount: int, tier: int = 0) -> void:
 	var orb := XPOrb.new()
 	orb.position = at
-	orb.setup(amount, player)
+	orb.setup(amount, player, tier)
 	add_child(orb)
 	xp_orbs.append(orb)
+
+func spawn_gold_orb(at: Vector2, amount: int) -> void:
+	var orb := GoldOrb.new()
+	orb.position = at + Vector2(randf_range(-12, 12), randf_range(-12, 12))
+	orb.setup(amount, player)
+	add_child(orb)
+	gold_orbs.append(orb)
 
 func gain_xp(amount: int) -> void:
 	run_xp += maxi(1, amount)
@@ -222,13 +273,18 @@ func gain_xp(amount: int) -> void:
 		return
 	run_xp -= xp_to_next
 	run_level += 1
-	xp_to_next = 18 + run_level * 7
-	offer_upgrades()
+	xp_to_next = 30 + run_level * 10
+	if levelup_pending:
+		return
+	levelup_pending = true
+	levelup_delay = 0.9
+	player.show_level_up()
+	sound.play("level_up")
 
 func create_echo() -> void:
 	sound.play("echo")
-	hud.announce("replace_echo" if echoes.size() == 4 else "new_echo")
-	if echoes.size() == 4:
+	hud.announce("replace_echo" if not echoes.is_empty() else "new_echo")
+	if not echoes.is_empty():
 		var oldest: Node = echoes.pop_front()
 		oldest.queue_free()
 	var echo = Echo.new()

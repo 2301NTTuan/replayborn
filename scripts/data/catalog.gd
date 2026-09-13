@@ -4,6 +4,11 @@ const WEAPONS: Array = [
 	preload("res://data/weapons/scatter.tres"),
 	preload("res://data/weapons/lance.tres")
 ]
+const CHARACTER_WEAPON_INDEX: Array[int] = [0, 0, 1, 1, 2, 2, 0, 0, 2, 2]
+
+static func weapon_for_character(character_index: int) -> Resource:
+	var index := CHARACTER_WEAPON_INDEX[clampi(character_index, 0, CHARACTER_WEAPON_INDEX.size() - 1)]
+	return WEAPONS[index]
 const ENEMIES: Array = [
 	preload("res://data/enemies/chaser.tres"),
 	preload("res://data/enemies/runner.tres"),

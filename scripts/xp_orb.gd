@@ -1,14 +1,16 @@
 extends Node2D
 
 var value: int = 1
+var tier: int = 0
 var target: Node2D
 var velocity := Vector2.ZERO
 var life: float = 0.0
 var collected: bool = false
 
-func setup(amount: int, owner: Node2D) -> void:
+func setup(amount: int, owner: Node2D, rarity_tier: int = 0) -> void:
 	value = amount
 	target = owner
+	tier = clampi(rarity_tier, 0, 3)
 	queue_redraw()
 
 func advance(delta: float) -> bool:
@@ -28,6 +30,11 @@ func advance(delta: float) -> bool:
 
 func _draw() -> void:
 	var pulse := 1.0 + sin(life * 8.0) * 0.12
-	draw_circle(Vector2.ZERO, 12.0 * pulse, Color(0.35, 0.95, 0.84, 0.16))
-	draw_circle(Vector2.ZERO, 6.0 * pulse, Color("62eacb"))
-	draw_circle(Vector2(-2, -2), 2.0, Color("eafffb"))
+	var colors := [Color("55ebd2"), Color("6ea8ff"), Color("ffd166"), Color("ff6bd6")]
+	var core: Color = colors[tier]
+	var radius := 6.0 + tier * 1.3
+	draw_circle(Vector2.ZERO, (12.0 + tier * 3.0) * pulse, Color(core, 0.16))
+	draw_circle(Vector2.ZERO, radius * pulse, core)
+	draw_circle(Vector2(-2, -2), 2.0 + tier * 0.4, Color("f4ffff"))
+	if tier > 0:
+		draw_arc(Vector2.ZERO, radius + 5.0, -life * 2.0, TAU - life * 2.0, 12, Color(core, 0.72), 2)

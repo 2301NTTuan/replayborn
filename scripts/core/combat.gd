@@ -27,11 +27,15 @@ func fire(target: Node2D, delta: float) -> Array:
 	var weapon: Resource = game.weapon
 	var stats: Dictionary = game.stats
 	var pellets: int = mini(7, weapon.pellets + int(stats.pellets))
-	var direction: Vector2 = game.player.position.direction_to(target.position)
+	var direction: Vector2 = game.player.facing.normalized()
+	if target != null and is_instance_valid(target):
+		direction = game.player.position.direction_to(target.position)
+		game.player.facing = direction
+	var muzzle: Vector2 = game.player.position + Vector2(0, -22) + direction * 34.0
 	for index in range(pellets):
 		var angle: float = (index - (pellets - 1) * 0.5) * maxf(weapon.spread, 0.10)
 		var shot: Dictionary = {
-			"position": game.player.position, "velocity": direction.rotated(angle) * weapon.speed * (1 + stats.bullet_speed),
+			"position": muzzle, "velocity": direction.rotated(angle) * weapon.speed * (1 + stats.bullet_speed),
 			"damage": weapon.damage * (1 + stats.damage) * (2.0 if randf() < stats.crit else 1.0),
 			"pierce": weapon.pierce + int(stats.pierce), "life": weapon.lifetime * (1 + stats.lifetime),
 			"echo_multiplier": 1 + stats.echo_power, "ghost": false
@@ -40,6 +44,7 @@ func fire(target: Node2D, delta: float) -> Array:
 		add_shot(shot)
 	fire_left = maxf(0.09, weapon.interval * pow(0.9, stats.haste))
 	game.sound.play("shot")
+	game.player.register_shot()
 	return result
 
 func enemy_shot(origin: Vector2, direction: Vector2, speed: float, damage: int) -> void:
@@ -105,6 +110,15 @@ func advance(delta: float) -> void:
 		if closest.distance_squared_to(game.player.position) < 33.0 * 33.0:
 			game.take_damage(bullet.damage)
 			bullet.life = 0
+		else:
+			for echo in game.echoes:
+				if echo.dead or echo.hurt_time > 0.0:
+					continue
+				var echo_closest := Geometry2D.get_closest_point_to_segment(echo.position, previous, bullet.position)
+				if echo_closest.distance_squared_to(echo.position) < 33.0 * 33.0:
+					game.take_echo_damage(echo, bullet.damage)
+					bullet.life = 0
+					break
 		if bullet.life <= 0 or not game.ARENA.has_point(bullet.position):
 			hostile.remove_at(index)
 	for index in range(effects.size() - 1, -1, -1):

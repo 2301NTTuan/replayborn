@@ -4,6 +4,7 @@ const CHARACTERS := [
     "vanguard_m", "vanguard_f", "runner_m", "runner_f", "tech_m", "tech_f",
     "warden_m", "warden_f", "duelist_m", "duelist_f"
 ]
+const ArenaMap = preload("res://scripts/visuals/arena_map.gd")
 
 var game: Node
 var map_root: Node2D
@@ -180,33 +181,6 @@ func setup_map(map_id: String) -> void:
     map_root.z_index = -100
     game.add_child(map_root)
     game.move_child(map_root, 0)
-
-    var floor := TextureRect.new()
-    floor.position = game.ARENA.position
-    floor.size = game.ARENA.size
-    floor.texture = load("res://assets/replayborn/maps/%s/floor_tile.png" % map_id)
-    floor.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-    floor.stretch_mode = TextureRect.STRETCH_TILE
-    floor.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-    floor.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    map_root.add_child(floor)
-
-    var rng := RandomNumberGenerator.new()
-    rng.seed = abs(hash(map_id))
-    for i in range(12):
-        var prop := Sprite2D.new()
-        prop.texture = load("res://assets/replayborn/maps/%s/prop_%02d.png" % [map_id, (i % 4) + 1])
-        var edge := i % 4
-        var p := Vector2.ZERO
-        if edge == 0:
-            p = Vector2(rng.randf_range(game.ARENA.position.x + 55, game.ARENA.end.x - 55), game.ARENA.position.y + rng.randf_range(30, 95))
-        elif edge == 1:
-            p = Vector2(rng.randf_range(game.ARENA.position.x + 55, game.ARENA.end.x - 55), game.ARENA.end.y - rng.randf_range(30, 95))
-        elif edge == 2:
-            p = Vector2(game.ARENA.position.x + rng.randf_range(30, 80), rng.randf_range(game.ARENA.position.y + 120, game.ARENA.end.y - 120))
-        else:
-            p = Vector2(game.ARENA.end.x - rng.randf_range(30, 80), rng.randf_range(game.ARENA.position.y + 120, game.ARENA.end.y - 120))
-        prop.position = p
-        prop.modulate.a = 0.70
-        prop.scale = Vector2(0.72, 0.72)
-        map_root.add_child(prop)
+    var arena_map := ArenaMap.new()
+    arena_map.configure(game.ARENA, game.map_data.background, game.map_data.accent, map_id)
+    map_root.add_child(arena_map)

@@ -37,7 +37,6 @@ var damage_time: float = 0
 var kills: int = 0
 var run_tick: int = 0
 var run_time: float = 0
-var next_upgrade_tick: int = 1800
 var won: bool = false
 var practice: bool = false
 var reduced_effects: bool = false
@@ -157,10 +156,6 @@ func _physics_process(delta: float) -> void:
 		finish(true)
 	elif run_tick >= 54000:
 		finish(false)
-	elif run_tick >= next_upgrade_tick and run_level == 1:
-		# Guarantee the first choice even when a short run has few enemies.
-		next_upgrade_tick += 1800
-		offer_upgrades()
 	hud.refresh()
 	queue_redraw()
 
@@ -288,15 +283,6 @@ func finish(victory: bool) -> void:
 	hud.show_result()
 
 func _draw() -> void:
-	draw_rect(ARENA, Color("111c30"))
-	var map_accent: Color = map_data.accent if map_data != null else Color("62eacb")
-	for x in range(100, 1030, 100):
-		draw_line(Vector2(x, 310), Vector2(x, 1820), Color(map_accent, 0.10), 1)
-	for y in range(400, 1820, 100):
-		draw_line(Vector2(50, y), Vector2(1030, y), Color(map_accent, 0.10), 1)
-	for corner in [ARENA.position, Vector2(ARENA.end.x, ARENA.position.y), Vector2(ARENA.position.x, ARENA.end.y), ARENA.end]:
-		draw_circle(corner, 18, Color(map_accent, 0.16))
-	draw_rect(ARENA, Color(map_accent, 0.72), false, 5)
 	if art != null:
 		art.draw_projectiles(self)
 	if combat == null:

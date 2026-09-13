@@ -24,6 +24,9 @@ func run() -> void:
 	for tick in range(18000):
 		game.damage_time = 99
 		game._physics_process(1.0 / 60)
+		# Cores are now earned from collected XP, never from a time-based trigger.
+		if tick == 1800:
+			game.gain_xp(game.xp_to_next)
 		if game.state == game.State.UPGRADE:
 			game.apply_upgrade(0)
 			upgrades += 1
@@ -41,7 +44,6 @@ func run() -> void:
 	game.set_physics_process(false)
 	game.sound.set_levels(0, 0)
 	game.run_tick = 3599
-	game.next_upgrade_tick = 999999
 	game.damage_time = 99
 	game._physics_process(1.0 / 60)
 	check(is_instance_valid(game.boss), "first boss appears at one minute")

@@ -5,7 +5,9 @@ var game: Node
 var root_control: Control
 var stats_label: Label
 var clock_label: Label
+var health_label: Label
 var echo_label: Label
+var xp_label: Label
 var boss_label: Label
 var progress: ProgressBar
 var xp_progress: ProgressBar
@@ -25,6 +27,14 @@ var pickup_left: float = 0.0
 func t(key: String) -> String:
 	return UI.text(key, game.profile)
 
+func hud_card(rect: Rect2, border: Color = Color("315976")) -> Panel:
+	var panel := Panel.new()
+	panel.position = rect.position
+	panel.size = rect.size
+	panel.add_theme_stylebox_override("panel", UI.box(Color("0a1a2e", 0.96), 16, border, 2))
+	root_control.add_child(panel)
+	return panel
+
 func bind_game(owner_game: Node) -> void:
 	game = owner_game
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -32,47 +42,68 @@ func bind_game(owner_game: Node) -> void:
 	root_control.theme = UI.theme()
 	root_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root_control)
-	var top_panel := Panel.new()
-	top_panel.position = Vector2(30, 24)
-	top_panel.size = Vector2(1020, 288)
-	top_panel.add_theme_stylebox_override("panel", UI.box(Color("09182a", 0.94), 22, Color("315976"), 2))
-	root_control.add_child(top_panel)
-	var top_line := ColorRect.new()
-	top_line.position = Vector2(54, 304)
-	top_line.size = Vector2(972, 3)
-	top_line.color = Color("55ebd2")
-	root_control.add_child(top_line)
-	clock_label = UI.label(root_control, "00:00", 54)
-	clock_label.position = Vector2(60, 42)
-	clock_label.size = Vector2(520, 70)
+	var backdrop := Panel.new()
+	backdrop.position = Vector2(28, 22)
+	backdrop.size = Vector2(1024, 294)
+	backdrop.add_theme_stylebox_override("panel", UI.box(Color("061222", 0.82), 24, Color("264a67"), 2))
+	root_control.add_child(backdrop)
+	hud_card(Rect2(46, 38, 294, 82), Color("55ebd2"))
+	hud_card(Rect2(354, 38, 258, 82), Color("315976"))
+	hud_card(Rect2(46, 134, 986, 74), Color("315976"))
+	hud_card(Rect2(46, 222, 986, 76), Color("315976"))
+	var run_caption := UI.label(root_control, "RUN STATUS", 16)
+	run_caption.position = Vector2(68, 49)
+	run_caption.size = Vector2(240, 22)
+	run_caption.add_theme_color_override("font_color", Color("55ebd2"))
+	clock_label = UI.label(root_control, "00:00", 38, true)
+	clock_label.position = Vector2(370, 51)
+	clock_label.size = Vector2(226, 48)
 	clock_label.add_theme_color_override("font_color", Color("effbff"))
 	stats_label = UI.label(root_control, "", 24)
-	stats_label.position = Vector2(62, 119)
-	stats_label.size = Vector2(720, 42)
+	stats_label.position = Vector2(68, 75)
+	stats_label.size = Vector2(250, 32)
 	stats_label.add_theme_color_override("font_color", Color("aec4d7"))
+	var vital_caption := UI.label(root_control, "VITAL // HP", 16)
+	vital_caption.position = Vector2(66, 143)
+	vital_caption.size = Vector2(220, 22)
+	vital_caption.add_theme_color_override("font_color", Color("ff9eb1"))
+	health_label = UI.label(root_control, "", 21)
+	health_label.position = Vector2(765, 141)
+	health_label.size = Vector2(240, 28)
+	health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	health_label.add_theme_color_override("font_color", Color("effbff"))
 	health_bar = ProgressBar.new()
-	health_bar.position = Vector2(60, 171)
-	health_bar.size = Vector2(960, 18)
+	health_bar.position = Vector2(66, 173)
+	health_bar.size = Vector2(946, 16)
 	health_bar.show_percentage = false
 	root_control.add_child(health_bar)
+	var memory_caption := UI.label(root_control, "REPLAY MEMORY", 16)
+	memory_caption.position = Vector2(66, 232)
+	memory_caption.size = Vector2(250, 22)
+	memory_caption.add_theme_color_override("font_color", Color("55ebd2"))
 	echo_label = UI.label(root_control, "", 22)
-	echo_label.position = Vector2(62, 204)
-	echo_label.size = Vector2(960, 35)
+	echo_label.position = Vector2(66, 257)
+	echo_label.size = Vector2(455, 26)
 	echo_label.add_theme_color_override("font_color", Color("a8c7d3"))
+	xp_label = UI.label(root_control, "", 19)
+	xp_label.position = Vector2(548, 257)
+	xp_label.size = Vector2(464, 26)
+	xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	xp_label.add_theme_color_override("font_color", Color("ffd26a"))
 	progress = ProgressBar.new()
-	progress.position = Vector2(60, 246)
-	progress.size = Vector2(960, 13)
+	progress.position = Vector2(66, 284)
+	progress.size = Vector2(450, 7)
 	progress.max_value = 900
 	progress.show_percentage = false
 	root_control.add_child(progress)
 	xp_progress = ProgressBar.new()
-	xp_progress.position = Vector2(60, 274)
-	xp_progress.size = Vector2(960, 9)
+	xp_progress.position = Vector2(548, 284)
+	xp_progress.size = Vector2(464, 7)
 	xp_progress.show_percentage = false
 	root_control.add_child(xp_progress)
 	pause_button = UI.button(root_control, t("pause"), game.toggle_pause)
-	pause_button.position = Vector2(828, 47)
-	pause_button.size = Vector2(188, 64)
+	pause_button.position = Vector2(812, 43)
+	pause_button.size = Vector2(204, 72)
 	pause_button.text = "Ⅱ  " + t("pause")
 	joystick = Joystick.new()
 	joystick.name = "Joystick"
@@ -131,10 +162,12 @@ func bind_game(owner_game: Node) -> void:
 
 func refresh() -> void:
 	clock_label.text = "%02d:%02d" % [int(game.run_time) / 60, int(game.run_time) % 60]
-	stats_label.text = "%s  ·  HP %d / %d   ·   %s %d" % [t("level") % (game.director.stage + 1), ceili(game.health), int(game.max_health), t("kills"), game.kills]
+	stats_label.text = "LV.%d  •  %s %d" % [game.director.stage + 1, t("kills"), game.kills]
+	health_label.text = "%d / %d" % [ceili(game.health), int(game.max_health)]
 	health_bar.max_value = game.max_health
 	health_bar.value = game.health
-	echo_label.text = "LV.%d  XP %d/%d   ·   %s  %04.1f / 15s   ·   ECHO %d/4" % [game.run_level, game.run_xp, game.xp_to_next, t("record"), game.recorder.tick / 60.0, game.echoes.size()]
+	echo_label.text = "%s  %04.1f / 15s   •   ECHO %d/4" % [t("record"), game.recorder.tick / 60.0, game.echoes.size()]
+	xp_label.text = "LV.%d  •  EXP %d/%d" % [game.run_level, game.run_xp, game.xp_to_next]
 	progress.value = game.recorder.tick
 	xp_progress.max_value = game.xp_to_next
 	xp_progress.value = game.run_xp
@@ -203,9 +236,9 @@ func show_tutorial() -> void:
 	UI.primary_button(body, "▶  " + t("ready"), game.begin_play, 104).grab_focus()
 
 func show_upgrades(offers: Array) -> void:
-	show_overlay(t("choose"))
-	overlay_kicker.text = "LEVEL UP  /  SELECT ONE AUGMENT"
-	overlay_note("Chọn một nâng cấp để định hình vòng lặp hiện tại.")
+	show_overlay("CHỌN LÕI" if game.profile.data.language == "vi" else "CHOOSE CORE")
+	overlay_kicker.text = "LEVEL UP  /  SELECT ONE CORE"
+	overlay_note("Bạn đã nhặt đủ EXP. Chạm một lõi để nâng cấp vòng lặp.")
 	var accents := [Color("55ebd2"), Color("ffd26a"), Color("b78cff")]
 	for index in range(offers.size()):
 		var offer_index := index
@@ -223,7 +256,7 @@ func show_upgrades(offers: Array) -> void:
 			offer_panel.add_theme_stylebox_override("panel", UI.box(Color("17364c"), 22, accents[index % accents.size()], 3)))
 		offer_panel.mouse_exited.connect(func() -> void:
 			offer_panel.add_theme_stylebox_override("panel", UI.box(UI.SURFACE, 22, accents[index % accents.size()], 2)))
-		UI.caption(offer, "AUGMENT %02d" % (index + 1))
+		UI.caption(offer, "CORE %02d" % (index + 1))
 		var title_label := UI.label(offer, title, 31)
 		title_label.add_theme_color_override("font_color", accents[index % accents.size()])
 		var description_label := UI.label(offer, description, 22)

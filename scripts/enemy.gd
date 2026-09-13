@@ -32,7 +32,7 @@ func setup(data: Resource, owner_game: Node, variant: int, difficulty: float) ->
 	max_health = health
 	radius = data.radius * (1.2 if elite > 0 else 1.0)
 	speed = data.speed * (1.3 if elite == 1 else 1.0)
-	contact_damage = data.damage + (5 if elite > 0 else 0)
+	contact_damage = maxi(1, roundi(data.damage * (0.90 + (difficulty - 1.0) * 0.52))) + (5 if elite > 0 else 0)
 	orbit_sign = -1 if randf() < 0.5 else 1
 
 func advance(delta: float) -> void:

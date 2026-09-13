@@ -79,6 +79,18 @@ func advance(delta: float) -> void:
 func _draw() -> void:
 	if spec == null:
 		return
+	if has_node("ArtVisual"):
+		var art_tint: Color = Color.WHITE if flash > 0 and not game.reduced_effects else spec.tint
+		if spawn_protection > 0:
+			draw_arc(Vector2.ZERO, radius + 12, 0, TAU, 24, art_tint, 2)
+		if spec.id == "charger" and cycle >= 1.6 and cycle < 2.3:
+			draw_line(Vector2.ZERO, dash_direction * 310, Color(0.8, 0.5, 1, 0.65), 5)
+		if elite > 0:
+			draw_arc(Vector2.ZERO, radius + 7, 0, TAU, 24, Color("ffe6a0") if elite == 1 else Color("a4ffff"), 3)
+		if health < max_health:
+			draw_line(Vector2(-radius, -radius - 13), Vector2(radius, -radius - 13), Color("28334a"), 4)
+			draw_line(Vector2(-radius, -radius - 13), Vector2(-radius + radius * 2 * health / max_health, -radius - 13), Color("ffbac4"), 4)
+		return
 	var tint: Color = Color.WHITE if flash > 0 and not game.reduced_effects else spec.tint
 	if spawn_protection > 0:
 		tint.a = 0.4

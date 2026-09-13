@@ -8,6 +8,7 @@ var clock_label: Label
 var echo_label: Label
 var boss_label: Label
 var progress: ProgressBar
+var xp_progress: ProgressBar
 var health_bar: ProgressBar
 var joystick: Control
 var overlay: ColorRect
@@ -15,6 +16,8 @@ var body: VBoxContainer
 var announcement: Label
 var announcement_left: float = 0
 var pause_button: Button
+var pickup_label: Label
+var pickup_left: float = 0.0
 
 func t(key: String) -> String:
 	return UI.text(key, game.profile)
@@ -26,6 +29,16 @@ func bind_game(owner_game: Node) -> void:
 	root_control.theme = UI.theme()
 	root_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root_control)
+	var top_panel := ColorRect.new()
+	top_panel.position = Vector2(35, 28)
+	top_panel.size = Vector2(1010, 275)
+	top_panel.color = Color(0.035, 0.08, 0.14, 0.92)
+	root_control.add_child(top_panel)
+	var top_line := ColorRect.new()
+	top_line.position = Vector2(35, 298)
+	top_line.size = Vector2(1010, 4)
+	top_line.color = Color("62eacb")
+	root_control.add_child(top_line)
 	clock_label = UI.label(root_control, "00:00", 52)
 	clock_label.position = Vector2(60, 45)
 	clock_label.size = Vector2(680, 70)
@@ -46,6 +59,11 @@ func bind_game(owner_game: Node) -> void:
 	progress.max_value = 900
 	progress.show_percentage = false
 	root_control.add_child(progress)
+	xp_progress = ProgressBar.new()
+	xp_progress.position = Vector2(60, 270)
+	xp_progress.size = Vector2(960, 10)
+	xp_progress.show_percentage = false
+	root_control.add_child(xp_progress)
 	pause_button = UI.button(root_control, t("pause"), game.toggle_pause)
 	pause_button.position = Vector2(815, 45)
 	pause_button.size = Vector2(205, 68)
@@ -60,6 +78,9 @@ func bind_game(owner_game: Node) -> void:
 	announcement = UI.label(root_control, "", 30, true)
 	announcement.position = Vector2(80, 335)
 	announcement.size = Vector2(920, 90)
+	pickup_label = UI.label(root_control, "", 24, true)
+	pickup_label.position = Vector2(220, 305)
+	pickup_label.size = Vector2(640, 40)
 	boss_label = UI.label(root_control, "", 25, true)
 	boss_label.position = Vector2(80, 425)
 	boss_label.size = Vector2(920, 45)
@@ -79,8 +100,10 @@ func refresh() -> void:
 	stats_label.text = "%s  ·  HP %d / %d   ·   %s %d" % [t("level") % (game.director.stage + 1), ceili(game.health), int(game.max_health), t("kills"), game.kills]
 	health_bar.max_value = game.max_health
 	health_bar.value = game.health
-	echo_label.text = "%s  %04.1f / 15s       ECHO  %d / 4" % [t("record"), game.recorder.tick / 60.0, game.echoes.size()]
+	echo_label.text = "LV.%d  XP %d/%d   ·   %s  %04.1f / 15s   ·   ECHO %d/4" % [game.run_level, game.run_xp, game.xp_to_next, t("record"), game.recorder.tick / 60.0, game.echoes.size()]
 	progress.value = game.recorder.tick
+	xp_progress.max_value = game.xp_to_next
+	xp_progress.value = game.run_xp
 	if is_instance_valid(game.boss) and not game.boss.dead:
 		boss_label.text = "%s  ·  %d / %d" % [t("boss"), ceili(game.boss.health), ceili(game.boss.max_health)]
 	else:
@@ -157,7 +180,15 @@ func _process(delta: float) -> void:
 		return
 	if not get_tree().paused and game.state == game.State.PLAYING:
 		announcement_left = maxf(0, announcement_left - delta)
-	announcement.visible = announcement_left > 0
+		announcement.visible = announcement_left > 0
+		pickup_left = maxf(0, pickup_left - delta)
+		pickup_label.visible = pickup_left > 0
+		if pickup_left <= 0:
+			pickup_label.text = ""
+
+func show_pickup(amount: int) -> void:
+	pickup_label.text = "+%d XP" % amount
+	pickup_left = 0.8
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if game == null or event.is_echo():

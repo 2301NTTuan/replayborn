@@ -182,6 +182,22 @@ func open_chest(slot: String, rarity_index: int, paid: bool = false) -> Dictiona
 	save_profile()
 	return item.duplicate(true)
 
+func open_chest_with_priority(slot: String, rarity_index: int) -> Dictionary:
+	"""Consume the daily free key first, then buy a key with gold."""
+	if slot not in SLOTS:
+		return {"status": "invalid"}
+	rarity_index = clampi(rarity_index, 0, RARITIES.size() - 1)
+	var rarity: String = RARITIES[rarity_index]
+	if chest_ready(rarity):
+		var free_item := open_chest(slot, rarity_index, false)
+		return {"status": "free", "item": free_item}
+	var chest: Dictionary = data.chests.get(rarity, {})
+	var cost: int = int(chest.get("gold", 0))
+	if data.gold >= cost:
+		var paid_item := open_chest(slot, rarity_index, true)
+		return {"status": "gold", "item": paid_item, "cost": cost}
+	return {"status": "payment", "cost": cost, "gold": data.gold}
+
 func finish_run(won: bool, seconds: float, kills: int) -> void:
 	if practice:
 		return

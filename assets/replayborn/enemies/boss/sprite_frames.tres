@@ -1,0 +1,49 @@
+[gd_resource type="SpriteFrames" load_steps=11 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/replayborn/enemies/boss/idle.png" id="1"]
+[ext_resource type="Texture2D" path="res://assets/replayborn/enemies/boss/run.png" id="2"]
+
+[sub_resource type="AtlasTexture" id="A_i0"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 144, 144)
+
+[sub_resource type="AtlasTexture" id="A_i1"]
+atlas = ExtResource("1")
+region = Rect2(144, 0, 144, 144)
+
+[sub_resource type="AtlasTexture" id="A_i2"]
+atlas = ExtResource("1")
+region = Rect2(288, 0, 144, 144)
+
+[sub_resource type="AtlasTexture" id="A_i3"]
+atlas = ExtResource("1")
+region = Rect2(432, 0, 144, 144)
+
+[sub_resource type="AtlasTexture" id="A_r0"]
+atlas = ExtResource("2")
+region = Rect2(0, 0, 144, 144)
+
+[sub_resource type="AtlasTexture" id="A_r1"]
+atlas = ExtResource("2")
+region = Rect2(144, 0, 144, 144)
+
+[sub_resource type="AtlasTexture" id="A_r2"]
+atlas = ExtResource("2")
+region = Rect2(288, 0, 144, 144)
+
+[sub_resource type="AtlasTexture" id="A_r3"]
+atlas = ExtResource("2")
+region = Rect2(432, 0, 144, 144)
+
+[resource]
+animations = [{
+"frames": [{"duration": 1.0, "texture": SubResource("A_i0")}, {"duration": 1.0, "texture": SubResource("A_i1")}, {"duration": 1.0, "texture": SubResource("A_i2")}, {"duration": 1.0, "texture": SubResource("A_i3")}],
+"loop": true,
+"name": &"idle",
+"speed": 6.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("A_r0")}, {"duration": 1.0, "texture": SubResource("A_r1")}, {"duration": 1.0, "texture": SubResource("A_r2")}, {"duration": 1.0, "texture": SubResource("A_r3")}],
+"loop": true,
+"name": &"run",
+"speed": 8.0
+}]

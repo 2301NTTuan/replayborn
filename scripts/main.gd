@@ -6,6 +6,8 @@ const Combat = preload("res://scripts/core/combat.gd")
 const Director = preload("res://scripts/core/director.gd")
 const Enemy = preload("res://scripts/enemy.gd")
 const Echo = preload("res://scripts/echo.gd")
+const XPOrb = preload("res://scripts/xp_orb.gd")
+const ArtBridge = preload("res://scripts/visuals/art_bridge.gd")
 const SoundBank = preload("res://scripts/sound_bank.gd")
 const ARENA: Rect2 = Rect2(50, 310, 980, 1510)
 enum State { PLAYING, PAUSED, UPGRADE, ENDED, TUTORIAL }
@@ -13,6 +15,7 @@ var state: State = State.PLAYING
 @onready var player: CharacterBody2D = $Player
 @onready var hud: CanvasLayer = $HUD
 var sound: Node
+var art: RefCounted
 var profile: Node
 var weapon: Resource
 var map_data: Resource
@@ -20,10 +23,14 @@ var combat: RefCounted
 var director: RefCounted
 var recorder: RefCounted = Recorder.new()
 var enemies: Array = []
+var xp_orbs: Array = []
 var echoes: Array = []
 var upgrade_counts: Dictionary = {}
 var offers: Array = []
 var stats: Dictionary = {"damage": 0.0, "haste": 0, "pellets": 0, "pierce": 0, "bullet_speed": 0.0, "lifetime": 0.0, "armor": 0, "regen": 0, "echo_power": 0.0, "crit": 0.0, "siphon": 0, "grace": 0.0}
+var run_level: int = 1
+var run_xp: int = 0
+var xp_to_next: int = 18
 var health: float = 100
 var max_health: float = 100
 var damage_time: float = 0
@@ -57,6 +64,8 @@ func _ready() -> void:
 	hud.bind_game(self)
 	recorder.begin(player.position)
 	RenderingServer.set_default_clear_color(map_data.background)
+	art = ArtBridge.new(self)
+	art.setup()
 	if not profile.data.tutorial and not test_mode:
 		state = State.TUTORIAL
 		get_tree().paused = true
@@ -112,9 +121,20 @@ func _physics_process(delta: float) -> void:
 	damage_time = maxf(0, damage_time - delta)
 	health = minf(max_health, health + stats.regen * delta)
 	player.advance(delta)
+	if art != null:
+		art.update_player(player)
 	director.advance(delta)
 	for enemy in enemies:
 		enemy.advance(delta)
+		if art != null:
+			art.update_enemy(enemy)
+	for index in range(xp_orbs.size() - 1, -1, -1):
+		var orb: Node2D = xp_orbs[index]
+		if orb.advance(delta):
+			if orb.collected:
+				gain_xp(orb.value)
+			orb.queue_free()
+			xp_orbs.remove_at(index)
 	for echo in echoes:
 		echo.advance()
 	var fired: Array = combat.fire(nearest_enemy(), delta)
@@ -135,7 +155,8 @@ func _physics_process(delta: float) -> void:
 		finish(true)
 	elif run_tick >= 54000:
 		finish(false)
-	elif run_tick >= next_upgrade_tick:
+	elif run_tick >= next_upgrade_tick and run_level == 1:
+		# Guarantee the first choice even when a short run has few enemies.
 		next_upgrade_tick += 1800
 		offer_upgrades()
 	hud.refresh()
@@ -167,6 +188,8 @@ func spawn_enemy(data: Resource, elite: int = 0, difficulty: float = 1.0) -> Nod
 		boss = enemy
 		enemy.spawn_protection = 2.0
 	add_child(enemy)
+	if art != null:
+		art.attach_enemy(enemy)
 	enemies.append(enemy)
 	return enemy
 
@@ -183,9 +206,27 @@ func kill_enemy(enemy: Node2D) -> void:
 		return
 	enemy.dead = true
 	kills += 1
+	spawn_xp_orb(enemy.position, 5 + enemy.elite * 4 + (12 if enemy.spec.id == "boss" else 0))
 	health = minf(max_health, health + stats.siphon) if health > 0 else 0
 	if enemy.spec.id == "boss":
 		director.complete_boss()
+
+func spawn_xp_orb(at: Vector2, amount: int) -> void:
+	var orb := XPOrb.new()
+	orb.position = at
+	orb.setup(amount, player)
+	add_child(orb)
+	xp_orbs.append(orb)
+
+func gain_xp(amount: int) -> void:
+	run_xp += maxi(1, amount)
+	hud.show_pickup(amount)
+	if run_xp < xp_to_next or state != State.PLAYING:
+		return
+	run_xp -= xp_to_next
+	run_level += 1
+	xp_to_next = 18 + run_level * 7
+	offer_upgrades()
 
 func create_echo() -> void:
 	sound.play("echo")
@@ -197,6 +238,8 @@ func create_echo() -> void:
 	echo_serial += 1
 	echo.setup(recorder.snapshot(), self, echo_serial)
 	add_child(echo)
+	if art != null:
+		art.attach_echo(echo)
 	echoes.append(echo)
 
 func offer_upgrades() -> void:
@@ -244,17 +287,23 @@ func finish(victory: bool) -> void:
 
 func _draw() -> void:
 	draw_rect(ARENA, Color("111c30"))
+	var map_accent: Color = map_data.accent if map_data != null else Color("62eacb")
 	for x in range(100, 1030, 100):
-		draw_line(Vector2(x, 310), Vector2(x, 1820), Color("1b2940"), 1)
+		draw_line(Vector2(x, 310), Vector2(x, 1820), Color(map_accent, 0.10), 1)
 	for y in range(400, 1820, 100):
-		draw_line(Vector2(50, y), Vector2(1030, y), Color("1b2940"), 1)
-	draw_rect(ARENA, Color("506a91"), false, 5)
+		draw_line(Vector2(50, y), Vector2(1030, y), Color(map_accent, 0.10), 1)
+	for corner in [ARENA.position, Vector2(ARENA.end.x, ARENA.position.y), Vector2(ARENA.position.x, ARENA.end.y), ARENA.end]:
+		draw_circle(corner, 18, Color(map_accent, 0.16))
+	draw_rect(ARENA, Color(map_accent, 0.72), false, 5)
+	if art != null:
+		art.draw_projectiles(self)
 	if combat == null:
 		return
-	for bullet in combat.friendly:
-		draw_circle(bullet.position, 6 if bullet.ghost else 7, Color("91a5ff") if bullet.ghost else Color("ffe59c"))
-	for bullet in combat.hostile:
-		draw_circle(bullet.position, 10, Color("ff425b"))
-		draw_arc(bullet.position, 12, 0, TAU, 12, Color("ffd0d5"), 2)
+	if art == null:
+		for bullet in combat.friendly:
+			draw_circle(bullet.position, 6 if bullet.ghost else 7, Color("91a5ff") if bullet.ghost else Color("ffe59c"))
+		for bullet in combat.hostile:
+			draw_circle(bullet.position, 10, Color("ff425b"))
+			draw_arc(bullet.position, 12, 0, TAU, 12, Color("ffd0d5"), 2)
 	for effect in combat.effects:
 		draw_arc(effect.position, 12 + (0.18 - effect.life) * 150, 0, TAU, 12, Color(1, 0.85, 0.6, effect.life / 0.18), 3)

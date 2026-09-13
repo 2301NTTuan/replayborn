@@ -6,19 +6,22 @@ static func text(key: String, profile: Node) -> String:
 
 static func theme() -> Theme:
 	var result := Theme.new()
-	result.default_font_size = 28
+	result.default_font_size = 27
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var box := StyleBoxFlat.new()
-		box.bg_color = Color("1b3048") if state == "normal" else Color("2b5266")
+		box.bg_color = Color("16283f") if state == "normal" else Color("254a62")
+		if state == "pressed":
+			box.bg_color = Color("316d7b")
 		if state == "disabled":
 			box.bg_color = Color("172030")
-		box.set_corner_radius_all(14)
-		box.set_content_margin_all(16)
-		box.border_color = Color("62eacb") if state == "focus" else Color("35516b")
-		box.set_border_width_all(3 if state == "focus" else 1)
+		box.set_corner_radius_all(18)
+		box.set_content_margin_all(18)
+		box.border_color = Color("6fffe0") if state == "focus" else Color("294b67")
+		box.set_border_width_all(3 if state == "focus" else 2)
 		result.set_stylebox(state, "Button", box)
 	result.set_color("font_color", "Label", Color("dce7f4"))
 	result.set_color("font_color", "Button", Color("edf6ff"))
+	result.set_color("font_hover_color", "Button", Color("ffffff"))
 	var background := StyleBoxFlat.new()
 	background.bg_color = Color("25354c")
 	background.set_corner_radius_all(6)

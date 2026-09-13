@@ -42,6 +42,10 @@ func advance(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
+	if has_node("ArtVisual"):
+		if hurt_time > 0:
+			draw_arc(Vector2.ZERO, 42, 0, TAU, 32, Color("ff647b"), 5)
+		return
 	var bob: float = sin(pulse * 7.0) * 1.5 if velocity.length_squared() > 0 else 0.0
 	var body := Vector2(0, bob)
 	# Soft contact shadow and energy ring make the sprite read against the arena.

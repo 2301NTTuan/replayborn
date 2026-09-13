@@ -5,11 +5,16 @@ const CharacterThumb = preload("res://ui/character_thumb.gd")
 const MapThumb = preload("res://ui/map_thumb.gd")
 var profile: Node
 var body: VBoxContainer
+var back_button: Button
 
 func _ready() -> void:
 	profile = get_node("/root/Profile")
 	theme = UI.theme()
 	body = UI.column(self, Rect2(100, 460, 880, 1320))
+	back_button = UI.button(self, "←  " + t("back"), show_home, 82)
+	back_button.position = Vector2(42, 42)
+	back_button.size = Vector2(260, 82)
+	back_button.hide()
 	show_home()
 	RenderingServer.set_default_clear_color(Color("090f1d"))
 
@@ -18,6 +23,11 @@ func t(key: String) -> String:
 
 func _draw() -> void:
 	draw_rect(Rect2(0, 0, 1080, 1920), Color("090f1d"))
+	draw_circle(Vector2(540, 250), 390, Color(0.08, 0.20, 0.28, 0.16))
+	draw_circle(Vector2(540, 250), 250, Color(0.10, 0.34, 0.38, 0.13))
+	draw_rect(Rect2(42, 395, 996, 1410), Color("0e1b2d"))
+	draw_rect(Rect2(42, 395, 996, 1410), Color("31506d"), false, 3)
+	draw_line(Vector2(75, 445), Vector2(1005, 445), Color("62eacb"), 3)
 	for index in range(4):
 		draw_arc(Vector2(540, 240), 70 + index * 30, -PI * 0.85, PI * 0.7, 64, Color(0.38, 0.92, 0.8, 0.75 - index * 0.16), 4)
 	draw_circle(Vector2(540, 240), 32, Color("62eacb"))
@@ -25,6 +35,7 @@ func _draw() -> void:
 
 func show_home() -> void:
 	UI.clear(body)
+	back_button.hide()
 	UI.label(body, t("tagline"), 26, true)
 	UI.label(body, t("records") % [profile.data.runs, profile.data.wins, profile.data.kills], 25, true)
 	if not profile.warning.is_empty():
@@ -66,29 +77,52 @@ func show_loadout() -> void:
 			if profile.upgrade_equipment(slot):
 				show_loadout())
 		UI.label(body, "Nâng cấp: %d mảnh + %d lõi" % [10 + int(item.level) * 8, 5 + int(item.level) * 4], 19)
-	UI.button(body, t("back"), show_home).grab_focus()
+	show_back_button()
 
 func show_shop() -> void:
 	UI.clear(body)
 	UI.label(body, t("shop"), 44, true)
-	UI.label(body, "Vàng: %d  ·  Payment thật chưa kết nối" % profile.data.gold, 24, true)
-	UI.label(body, "Rương có lượt mở miễn phí theo chu kỳ ngày; mở trả phí dùng vàng.", 21, true)
-	for rarity_index in range(profile.RARITIES.size()):
-		var rarity: String = profile.RARITIES[rarity_index]
-		var chest: Dictionary = profile.data.chests[rarity]
-		var ready: String = "FREE READY" if profile.chest_ready(rarity) else "FREE COOLDOWN %d ngày" % chest.free_days
-		UI.label(body, "%s  ·  %s  ·  %d vàng" % [rarity, ready, chest.gold], 25)
-		for slot in profile.SLOTS:
-			UI.button(body, "%s · Mở miễn phí" % slot, func() -> void:
-				profile.open_chest(slot, rarity_index, false)
-				show_shop(), 62)
-			UI.button(body, "%s · Mở bằng vàng" % slot, func() -> void:
-				profile.open_chest(slot, rarity_index, true)
-				show_shop(), 62)
-	UI.button(body, t("back"), show_home).grab_focus()
+	UI.label(body, "Vàng: %d  ·  Key free được ưu tiên trước" % profile.data.gold, 24, true)
+	UI.label(body, "Chọn từng loại rương và độ hiếm. Nếu hết lượt free, hệ thống tự dùng vàng mua key.", 21, true)
+	for slot in profile.SLOTS:
+		UI.label(body, "━━  RƯƠNG %s  ━━" % slot, 31, true)
+		for rarity_index in range(profile.RARITIES.size()):
+			var rarity: String = profile.RARITIES[rarity_index]
+			var chest: Dictionary = profile.data.chests[rarity]
+			var ready: String = "KEY FREE SẴN" if profile.chest_ready(rarity) else "KEY FREE sau %d ngày" % chest.free_days
+			UI.button(body, "%s  ·  %s  ·  %d vàng/key" % [rarity, ready, chest.gold], func() -> void:
+				open_shop_chest(slot, rarity_index), 70)
+	show_back_button()
+
+func open_shop_chest(slot: String, rarity_index: int) -> void:
+	var result: Dictionary = profile.open_chest_with_priority(slot, rarity_index)
+	match result.get("status", ""):
+		"free":
+			show_shop()
+		"gold":
+			show_shop()
+		"payment":
+			show_payment_popup(slot, rarity_index, int(result.get("cost", 0)))
+		_:
+			show_shop()
+
+func show_payment_popup(slot: String, rarity_index: int, cost: int) -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Mua key mở rương"
+	dialog.dialog_text = "Bạn không đủ vàng để mua key %s %s (cần %d vàng).\nPayment thật sẽ được tích hợp ở bước phát hành." % [slot, profile.RARITIES[rarity_index], cost]
+	dialog.ok_button_text = "Mua key qua payment"
+	dialog.cancel_button_text = "Để sau"
+	add_child(dialog)
+	dialog.confirmed.connect(func() -> void:
+		dialog.queue_free()
+		show_shop())
+	dialog.canceled.connect(func() -> void:
+		dialog.queue_free())
+	dialog.popup_centered(Vector2(760, 300))
 
 func show_missions() -> void:
 	UI.clear(body)
+	show_back_button()
 	UI.label(body, t("missions"), 44, true)
 	var missions: Dictionary = profile.data.missions
 	UI.label(body, "Hạ 100 quái: %d / 100" % mini(100, int(missions.kills)), 26)
@@ -109,10 +143,10 @@ func show_missions() -> void:
 			show_missions())
 	else:
 		UI.label(body, "Thưởng: 1000 vàng + 100 lõi" if not missions.claimed_wins else "Đã nhận", 22)
-	UI.button(body, t("back"), show_home).grab_focus()
 
 func show_character_select() -> void:
 	UI.clear(body)
+	show_back_button()
 	UI.label(body, t("character_menu"), 44, true)
 	UI.label(body, "5 archetype × Nam/Nữ · chỉ số giống nhau, silhouette khác nhau", 23, true)
 	for index in range(10):
@@ -124,10 +158,10 @@ func show_character_select() -> void:
 			if event is InputEventMouseButton and event.pressed:
 				profile.setting("character", index)
 				show_character_select())
-	UI.button(body, t("back"), show_home).grab_focus()
 
 func show_map_select() -> void:
 	UI.clear(body)
+	show_back_button()
 	UI.label(body, t("map_menu"), 44, true)
 	UI.label(body, "10 map · mỗi map 10 level · mỗi level 1 boss", 23, true)
 	for index in range(Catalog.MAPS.size()):
@@ -139,7 +173,6 @@ func show_map_select() -> void:
 			if event is InputEventMouseButton and event.pressed:
 				profile.setting("map", index)
 				show_map_select())
-	UI.button(body, t("back"), show_home).grab_focus()
 
 func launch(practice: bool) -> void:
 	profile.practice = practice
@@ -147,12 +180,17 @@ func launch(practice: bool) -> void:
 
 func show_settings() -> void:
 	UI.clear(body)
+	show_back_button()
 	UI.label(body, t("settings"), 44)
 	UI.settings(body, profile, show_settings)
-	UI.button(body, t("back"), show_home)
 
 func show_help() -> void:
 	UI.clear(body)
+	show_back_button()
 	UI.label(body, t("help"), 44)
 	UI.label(body, t("help_body"), 29)
-	UI.button(body, t("back"), show_home)
+
+func show_back_button() -> void:
+	back_button.text = "←  " + t("back")
+	back_button.show()
+	back_button.grab_focus()

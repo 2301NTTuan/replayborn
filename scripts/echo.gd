@@ -37,6 +37,10 @@ func advance() -> void:
 	queue_redraw()
 
 func _draw() -> void:
+	if has_node("ArtVisual"):
+		draw_arc(Vector2.ZERO, 32, 0, TAU, 24, tint, 3)
+		draw_string(ThemeDB.fallback_font, Vector2(-7, 7), str(number), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("b2c6ff"))
+		return
 	draw_circle(Vector2.ZERO, 25, Color(tint, 0.16))
 	draw_arc(Vector2.ZERO, 28, 0, TAU, 24, tint, 3)
 	draw_circle(Vector2(0, -8), 10, Color(tint, 0.7))

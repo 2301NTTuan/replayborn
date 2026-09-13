@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/map_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "replay_core"
+title_vi = "Lõi Replayborn"
+title_en = "Replay Core"
+subtitle_vi = "Nơi vòng lặp kết thúc"
+subtitle_en = "Where the loop ends"
+background = Color(0.117647, 0.070588, 0.164706, 1)
+accent = Color(0.933333, 0.607843, 0.980392, 1)
+enemy_order = [4, 3, 2, 1, 0]
+spawn_scale = 1.5
+boss_scale = 1.6

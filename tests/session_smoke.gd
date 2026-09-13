@@ -20,9 +20,13 @@ func run() -> void:
 	var touch := InputEventScreenTouch.new()
 	touch.index = 2
 	touch.pressed = true
-	touch.position = Vector2(325, 1630)
+	touch.position = Vector2(150, 1630)
 	joystick._input(touch)
-	check(game.player.touch_direction.x > 0.9, "touch direction")
+	var drag := InputEventScreenDrag.new()
+	drag.index = 2
+	drag.position = Vector2(325, 1630)
+	joystick._input(drag)
+	check(game.player.touch_direction.x > 0.9 and joystick.center == Vector2(150, 1630), "dynamic touch direction")
 	game.toggle_pause()
 	check(paused and joystick.finger == -1 and game.player.touch_direction == Vector2.ZERO, "pause clears touch")
 	var tick: int = game.run_tick

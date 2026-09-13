@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/map_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "void_garden"
+title_vi = "Vườn Hư không"
+title_en = "Void Garden"
+subtitle_vi = "Sự sống ngoài thực tại"
+subtitle_en = "Life beyond reality"
+background = Color(0.090196, 0.082353, 0.172549, 1)
+accent = Color(0.780392, 0.490196, 1, 1)
+enemy_order = [4, 2, 0, 3, 1]
+spawn_scale = 1.15
+boss_scale = 1.15

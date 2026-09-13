@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/map_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "red_frontier"
+title_vi = "Biên giới Đỏ"
+title_en = "Red Frontier"
+subtitle_vi = "Không còn đường lùi"
+subtitle_en = "No way back"
+background = Color(0.188235, 0.090196, 0.113725, 1)
+accent = Color(1, 0.419608, 0.419608, 1)
+enemy_order = [1, 0, 3, 4, 2]
+spawn_scale = 1.4
+boss_scale = 1.4

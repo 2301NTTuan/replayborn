@@ -40,7 +40,7 @@ func run() -> void:
 	root.add_child(game)
 	game.set_physics_process(false)
 	game.sound.set_levels(0, 0)
-	game.run_tick = 35999
+	game.run_tick = 3599
 	game.next_upgrade_tick = 999999
 	game.damage_time = 99
 	game._physics_process(1.0 / 60)
@@ -50,6 +50,7 @@ func run() -> void:
 	boss.shot_time = 0
 	boss.advance(1.0 / 60)
 	check(game.combat.hostile.size() >= 12, "boss radial fire")
+	game.director.boss_defeated = 9
 	game.kill_enemy(boss)
 	game._physics_process(1.0 / 60)
 	check(game.won, "boss kill wins")

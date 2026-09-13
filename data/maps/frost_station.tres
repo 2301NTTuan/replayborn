@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/map_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "frost_station"
+title_vi = "Trạm Băng"
+title_en = "Frost Station"
+subtitle_vi = "Tín hiệu dưới băng"
+subtitle_en = "Signal beneath ice"
+background = Color(0.078431, 0.145098, 0.211765, 1)
+accent = Color(0.658824, 0.854902, 0.862745, 1)
+enemy_order = [2, 4, 3, 0, 1]
+spawn_scale = 1.2
+boss_scale = 1.2

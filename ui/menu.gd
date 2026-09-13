@@ -28,6 +28,24 @@ func show_home() -> void:
 	if not profile.warning.is_empty():
 		UI.label(body, t(profile.warning), 24, true)
 	UI.label(body, t("weapon"), 26)
+	UI.label(body, t("character"), 26)
+	var character_picker := OptionButton.new()
+	character_picker.custom_minimum_size.y = 90
+	var character_names: Array = ["Vanguard · Nam / Male", "Vanguard · Nữ / Female", "Runner · Nam / Male", "Runner · Nữ / Female", "Tech · Nam / Male", "Tech · Nữ / Female", "Warden · Nam / Male", "Warden · Nữ / Female", "Duelist · Nam / Male", "Duelist · Nữ / Female"]
+	for name in character_names:
+		character_picker.add_item(name)
+	character_picker.select(profile.data.character)
+	body.add_child(character_picker)
+	character_picker.item_selected.connect(func(index: int) -> void: profile.setting("character", index))
+	UI.label(body, t("map"), 26)
+	var map_picker := OptionButton.new()
+	map_picker.custom_minimum_size.y = 90
+	for map_data in Catalog.MAPS:
+		var map_name: String = map_data.title_en if profile.data.language == "en" else map_data.title_vi
+		map_picker.add_item(map_name + " · " + (map_data.subtitle_en if profile.data.language == "en" else map_data.subtitle_vi))
+	map_picker.select(profile.data.map)
+	body.add_child(map_picker)
+	map_picker.item_selected.connect(func(index: int) -> void: profile.setting("map", index))
 	var weapon_picker := OptionButton.new()
 	weapon_picker.custom_minimum_size.y = 90
 	for weapon in Catalog.WEAPONS:

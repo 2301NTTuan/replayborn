@@ -12,7 +12,7 @@ func _ready() -> void:
 	load_profile()
 
 func defaults() -> Dictionary:
-	return {"version": SCHEMA, "volume": 0.65, "music": 0.35, "reduced": false, "language": "vi", "tutorial": false, "runs": 0, "wins": 0, "kills": 0, "best_seconds": 0.0, "palette": 0, "weapon": 0}
+	return {"version": SCHEMA, "volume": 0.65, "music": 0.35, "reduced": false, "language": "vi", "tutorial": false, "runs": 0, "wins": 0, "kills": 0, "best_seconds": 0.0, "palette": 0, "weapon": 0, "character": 0, "map": 0}
 
 func valid_profile(value: Variant) -> bool:
 	if not value is Dictionary or value.get("version") != SCHEMA:
@@ -51,6 +51,8 @@ func load_profile() -> void:
 		data.best_seconds = clampf(data.best_seconds, 0, 86400)
 		data.palette = clampi(int(data.palette), 0, 2) if data.palette is float or data.palette is int else 0
 		data.weapon = clampi(int(data.weapon), 0, 2) if data.weapon is float or data.weapon is int else 0
+		data.character = clampi(int(data.character), 0, 9) if data.character is float or data.character is int else 0
+		data.map = clampi(int(data.map), 0, 9) if data.map is float or data.map is int else 0
 		if not palette_unlocked(data.palette):
 			data.palette = 0
 		selected_weapon = data.weapon
@@ -85,7 +87,7 @@ func save_profile() -> Error:
 	return result
 
 func setting(key: String, value: Variant) -> void:
-	if key not in ["volume", "music", "reduced", "language", "tutorial", "weapon", "palette"]:
+	if key not in ["volume", "music", "reduced", "language", "tutorial", "weapon", "palette", "character", "map"]:
 		return
 	data[key] = value
 	save_profile()

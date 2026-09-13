@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/map_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "iron_foundry"
+title_vi = "Lò rèn Sắt"
+title_en = "Iron Foundry"
+subtitle_vi = "Nhiệt và kim loại"
+subtitle_en = "Heat and metal"
+background = Color(0.156863, 0.105882, 0.152941, 1)
+accent = Color(1, 0.623529, 0.407843, 1)
+enemy_order = [0, 3, 1, 2, 4]
+spawn_scale = 1.1
+boss_scale = 1.1

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/map_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "neon_ruins"
+title_vi = "Tàn tích Neon"
+title_en = "Neon Ruins"
+subtitle_vi = "Mê cung ánh sáng vỡ"
+subtitle_en = "Broken light maze"
+background = Color(0.066667, 0.109804, 0.188235, 1)
+accent = Color(0.384314, 0.917647, 0.796078, 1)
+enemy_order = [0, 1, 2, 3, 4]
+spawn_scale = 1
+boss_scale = 1

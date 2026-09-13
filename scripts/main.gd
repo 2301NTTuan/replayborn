@@ -15,6 +15,7 @@ var state: State = State.PLAYING
 var sound: Node
 var profile: Node
 var weapon: Resource
+var map_data: Resource
 var combat: RefCounted
 var director: RefCounted
 var recorder: RefCounted = Recorder.new()
@@ -43,16 +44,18 @@ func _ready() -> void:
 	profile = get_node("/root/Profile")
 	practice = profile.practice
 	weapon = Catalog.WEAPONS[clampi(profile.selected_weapon, 0, 2)]
+	map_data = Catalog.MAPS[clampi(profile.data.map, 0, 9)]
 	sound = SoundBank.new()
 	add_child(sound)
 	combat = Combat.new(self)
 	director = Director.new(self)
 	player.arena = ARENA
+	player.configure_character(profile.data.character)
 	profile.settings_changed.connect(apply_settings)
 	apply_settings()
 	hud.bind_game(self)
 	recorder.begin(player.position)
-	RenderingServer.set_default_clear_color(Color("090f1d"))
+	RenderingServer.set_default_clear_color(map_data.background)
 	if not profile.data.tutorial and not test_mode:
 		state = State.TUTORIAL
 		get_tree().paused = true
@@ -181,7 +184,7 @@ func kill_enemy(enemy: Node2D) -> void:
 	kills += 1
 	health = minf(max_health, health + stats.siphon) if health > 0 else 0
 	if enemy.spec.id == "boss":
-		boss_killed = true
+		director.complete_boss()
 
 func create_echo() -> void:
 	sound.play("echo")

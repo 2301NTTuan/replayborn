@@ -3,6 +3,10 @@
 Open `project.godot` with Godot 4.7.2 and press F6/F5. The project now opens at the Vietnamese/English menu. Select a weapon, start a run, or use Practice for a five-minute session.
 
 Windows artifact: `exports/windows/Replayborn.exe`
+
+Touch control is invisible and dynamic: touch and drag anywhere inside the arena below the top HUD. No joystick graphic appears.
+
+Normal runs contain 10 selected-map levels. Each level spawns its map-specific enemy order and ends with a scaled boss; defeating the boss unlocks the next level. Defeating level 10 completes the map. Practice mode remains a five-minute fast test without the level-boss progression.
 Android debug artifact: `exports/android/Replayborn-debug.apk`
 
 Validation:

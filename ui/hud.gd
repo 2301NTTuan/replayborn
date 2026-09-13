@@ -51,8 +51,9 @@ func bind_game(owner_game: Node) -> void:
 	pause_button.size = Vector2(205, 68)
 	joystick = Joystick.new()
 	joystick.name = "Joystick"
-	joystick.position = Vector2(70, 1480)
-	joystick.size = Vector2(300, 300)
+	# The joystick is an invisible full-playfield touch layer with no visual.
+	joystick.position = Vector2.ZERO
+	joystick.size = Vector2(1080, 1920)
 	joystick.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	joystick.direction_changed.connect(func(direction: Vector2) -> void: game.player.touch_direction = direction)
 	root_control.add_child(joystick)
@@ -75,13 +76,13 @@ func bind_game(owner_game: Node) -> void:
 
 func refresh() -> void:
 	clock_label.text = "%02d:%02d" % [int(game.run_time) / 60, int(game.run_time) % 60]
-	stats_label.text = "HP %d / %d   ·   %s %d   ·   %s" % [ceili(game.health), int(game.max_health), t("kills"), game.kills, t("stage") % (game.director.stage + 1)]
+	stats_label.text = "%s  ·  HP %d / %d   ·   %s %d" % [t("level") % (game.director.stage + 1), ceili(game.health), int(game.max_health), t("kills"), game.kills]
 	health_bar.max_value = game.max_health
 	health_bar.value = game.health
 	echo_label.text = "%s  %04.1f / 15s       ECHO  %d / 4" % [t("record"), game.recorder.tick / 60.0, game.echoes.size()]
 	progress.value = game.recorder.tick
 	if is_instance_valid(game.boss) and not game.boss.dead:
-		boss_label.text = "%s  %d / %d" % [t("boss"), ceili(game.boss.health), ceili(game.boss.max_health)]
+		boss_label.text = "%s  ·  %d / %d" % [t("boss"), ceili(game.boss.health), ceili(game.boss.max_health)]
 	else:
 		boss_label.text = ""
 
@@ -148,7 +149,7 @@ func show_result() -> void:
 	UI.button(body, t("home"), game.return_home)
 
 func announce(key: String) -> void:
-	announcement.text = t(key)
+	announcement.text = t(key) % (game.director.stage + 1) if key in ["boss_arrives", "level_cleared"] else t(key)
 	announcement_left = 2.5
 
 func _process(delta: float) -> void:

@@ -12,12 +12,18 @@ func _initialize() -> void:
 func run() -> void:
 	var profile = root.get_node("Profile")
 	profile.practice = true
+	profile.selected_weapon = 0
+	profile.data.weapon = 0
 	var game = load("res://scenes/main.tscn").instantiate()
 	game.test_mode = true
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame
-	check(game.Catalog.UPGRADES.size() == 15 and game.Catalog.WEAPONS.size() == 3, "content counts")
+	check(game.Catalog.UPGRADES.size() == 15 and game.Catalog.WEAPONS.size() == 3 and game.Catalog.MAPS.size() == 10, "content counts")
+	for character_index in range(10):
+		game.player.configure_character(character_index)
+		check(game.player.archetype == character_index / 2 and game.player.gender == character_index % 2, "character variant %d" % character_index)
+	game.player.configure_character(0)
 	game.sound.set_levels(0, 0)
 	game.director.spawn_left = INF
 	var before: Vector2 = game.player.position

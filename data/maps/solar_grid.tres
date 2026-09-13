@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/map_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "solar_grid"
+title_vi = "Lưới Mặt trời"
+title_en = "Solar Grid"
+subtitle_vi = "Năng lượng quá tải"
+subtitle_en = "Overloaded energy"
+background = Color(0.188235, 0.129412, 0.082353, 1)
+accent = Color(1, 0.819608, 0.4, 1)
+enemy_order = [1, 3, 4, 2, 0]
+spawn_scale = 1.25
+boss_scale = 1.25

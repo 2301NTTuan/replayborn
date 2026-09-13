@@ -1,4 +1,4 @@
-# Replayborn prototype
+# Replayborn production candidate
 
 Requires Godot 4.7.2, GDScript, Mobile renderer.
 
@@ -40,7 +40,9 @@ No external assets, networking, advertising or purchases are used by gameplay.
 
 ## Production work
 
-See docs/PRODUCTION_PLAN.md for scope, milestones and progress. Touch joystick is at the lower left. ESC or PAUSE opens the pause menu; RESUME continues and RESTART starts a new run. Losing app focus pauses automatically. Run tests/session_smoke.gd headlessly to verify touch and session controls.
+See docs/PRODUCTION_PLAN.md for scope, milestones and progress. ESC or PAUSE opens the pause menu; RESUME continues and RESTART starts a new run. Losing app focus pauses automatically. Run tests/session_smoke.gd headlessly to verify touch and session controls.
+
+Touch control is now invisible and dynamic: touch and drag anywhere inside the arena below the HUD. No joystick graphic appears and no playfield space is reserved.
 
 
 The M1 run lasts 5 minutes. Runners enter after 20 seconds; chargers after 60 seconds telegraph before dashing. Every 30 seconds choose fire rate, movement speed or healing. Survive to 05:00 to win. Run tests/run_smoke.gd for progression checks; this test bypasses player damage and is not a balance test.

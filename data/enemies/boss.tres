@@ -1,0 +1,10 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "boss"
+health = 500
+speed = 75.0
+radius = 66.0
+damage = 25
+tint = Color(1,0.32,0.4,1)

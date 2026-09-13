@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "pulse"
+interval = 0.28
+damage = 1.0
+speed = 950.0
+pellets = 1
+spread = 0
+pierce = 0
+lifetime = 1.8

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "pierce"
+title_vi = "Xuyên giáp"
+title_en = "Piercing"
+description_vi = "Đạn xuyên thêm 1 mục tiêu"
+description_en = "Pierce one extra target"
+stat = "pierce"
+amount = 1
+limit = 3

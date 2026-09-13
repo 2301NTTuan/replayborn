@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "chaser"
+health = 2
+speed = 120.0
+radius = 24.0
+damage = 10
+tint = Color(1,0.39,0.48,1)
+

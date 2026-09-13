@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "multishot"
+title_vi = "Phân nhánh"
+title_en = "Multishot"
+description_vi = "Thêm 1 đạn mỗi lần bắn"
+description_en = "One extra pellet per shot"
+stat = "pellets"
+amount = 1
+limit = 3

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "armor"
+title_vi = "Giáp"
+title_en = "Armor"
+description_vi = "Giảm 2 sát thương nhận, tối thiểu 1"
+description_en = "Incoming damage -2, minimum 1"
+stat = "armor"
+amount = 2
+limit = 4

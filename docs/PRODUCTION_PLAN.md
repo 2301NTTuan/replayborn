@@ -1,0 +1,65 @@
+# Replayborn — Kế hoạch production
+
+Cập nhật: 2026-09-13. Engine: Godot 4.7.2, GDScript, Mobile renderer.
+
+## Định hướng và phạm vi
+
+Game roguelite sinh tồn 2D dọc, chơi đơn offline. Giả định hiện tại: ưu tiên Android, Windows phục vụ phát triển và chơi thử; cần xác nhận trước khi chuẩn bị phát hành.
+Không quảng cáo, mua hàng, online. Không commit/push khi chưa được người dùng cho phép.
+Canvas 1080×1920. Nhân vật tự bắn; mỗi 15 giây tạo bản sao lặp lại vị trí, thời điểm, nguồn và hướng bắn. Tối đa 4 bản sao, thay bản cũ nhất.
+Bản sao không nhận sát thương. Định hướng nâng cấp: giữ thông số vũ khí tại thời điểm ghi; triển khai khi xây hệ thống vũ khí.
+Trận 1.0 dự kiến 10–15 phút, kết thúc bằng boss hoặc thất bại.
+Phạm vi đề xuất: 1 nhân vật, 1 đấu trường, 3 vũ khí, 5 loại địch, 2 biến thể tinh anh, 1 boss, khoảng 15 nâng cấp.
+
+## M1 — Thiết kế và bản chơi thử 5 phút
+
+- [x] Prototype di chuyển, tự bắn, truy đuổi, ghi/phát lại và HUD.
+- [x] Lưu kế hoạch và phạm vi dự kiến vào repository.
+- [x] Joystick cảm ứng, pause/resume, tự pause khi mất focus.
+- [x] Tiến trình ghi, thông báo tạo/thay bản sao, nút chơi lại cảm ứng.
+- [x] Ba loại địch: chaser, runner, charger có báo hướng trước khi lao.
+- [x] Nâng cấp mỗi 30 giây (tốc bắn, tốc chạy, hồi máu), kết quả thắng sau 5 phút.
+- [x] Phản hồi bắn trúng bằng hình ảnh và âm thanh tổng hợp (chưa đánh giá nghe/nhìn thực tế).
+- [ ] Chơi thử trên Android và kiểm chứng người mới hiểu chiến thuật bản sao.
+
+Nghiệm thu: chơi trọn 5 phút bằng cảm ứng, đọc được màn hình khi đông, người mới hiểu đường đi và hướng bắn đã ghi ảnh hưởng bản sao. Điều chỉnh core loop trước khi mở rộng nội dung.
+
+## M2 — Nền tảng production
+
+Tách trạng thái trận, combat, vũ khí, sát thương, ghi/phát lại. Dùng tick vật lý cho timeline. Quy định pause, chết, thay bản sao. Cấu hình nội dung bằng Resources. Lưu thiết lập/tiến trình có phiên bản và phục hồi file hỏng. Đo hiệu năng trước khi pooling. Tự động kiểm thử và quy trình build debug/release.
+Nghiệm thu: hệ thống độc lập đủ để thêm nội dung không sửa bộ điều phối trận; kiểm tra lưu và replay qua các trường hợp biên.
+
+## M3 — Nội dung hoàn chỉnh
+
+Hoàn thiện phạm vi 1.0, nhịp trận và boss. Menu, hướng dẫn, thiết lập, kết quả, mở khóa. Art/VFX/audio thống nhất. Safe area, tỷ lệ màn hình, cỡ chữ, giảm rung/hiệu ứng và âm lượng. Chuỗi giao diện hỗ trợ Việt/Anh.
+Nghiệm thu: từ menu tới kết quả, mở lại vẫn giữ tiến trình đúng.
+
+## M4 — Cân bằng, hiệu năng và QA
+
+Đo tình huống 4 bản sao và đông địch/đạn trên thiết bị tham chiếu. Mục tiêu sơ bộ 60 FPS; chốt ngân sách bộ nhớ/thời gian tải sau đo M1. Kiểm tra nền/khóa máy/âm thanh, nhiều trận liên tục, chết tại ranh giới ghi, dữ liệu hỏng và nâng cấp kết hợp.
+Nghiệm thu: không crash/mất dữ liệu/chặn trận; đạt ngân sách thiết bị đã chọn; người ngoài nhóm chơi hiểu cơ chế.
+
+## M5 — Phát hành 1.0
+
+Khóa tính năng, chỉ sửa lỗi/cân bằng. Chuẩn bị build ký, icon, ảnh giới thiệu, thông tin hỗ trợ, giấy phép asset và phiên bản. Kiểm tra bản release độc lập editor. Phát hành cần quyết định nền tảng/tài khoản và sự cho phép của chủ project.
+
+## Ước lượng và thứ tự
+
+12–18 tuần chỉ là ước lượng ban đầu cho một lập trình viên toàn thời gian có hỗ trợ mỹ thuật/âm thanh giới hạn; đánh giá lại sau M1. Thứ tự M1 → M2 → M3 → M4 → M5; nền tảng cần cho M1 được làm ngay trong M1.
+Rủi ro chính: bản sao khó đọc/ít chiến thuật, cảm ứng khó tránh địch, tải đạn tăng, khối lượng asset. Giảm rủi ro bằng playtest M1 và đo thiết bị thật trước khi mở rộng.
+
+## Nhật ký triển khai
+
+- 2026-09-13: bắt đầu M1 — điều khiển cảm ứng, pause/resume, HUD tiến trình và thao tác chơi lại. Các mốc còn lại chưa hoàn thành.
+
+- Kiểm chứng đợt đầu: Godot 4.7.2 import sạch; prototype_smoke và session_smoke PASS (75 giây ghi, giới hạn bản sao, cảm ứng, pause/resume, mất focus, game over). Chưa kiểm chứng cảm ứng trên thiết bị Android thật. Tiếp theo: 3 loại địch và nhịp trận 5 phút.
+
+
+- Đợt 2: ba loại địch, spawn tăng từ 0.85 xuống 0.28 giây, phản hồi trúng đạn, 9 lựa chọn nâng cấp và chiến thắng 300 giây. run_smoke PASS kiểm tra tiến trình, upgrade/pause, chiến thắng và telegraph/dash. Prototype/session smoke vẫn PASS. Đây là kiểm thử logic có bỏ sát thương lên người chơi, không thay thế playtest cân bằng. Âm thanh, Android thật, art và các mốc M2–M5 vẫn còn.
+
+
+- Đợt 3: 7 âm thanh tổng hợp, vòng báo nhận sát thương, hiệu ứng trúng đạn có giới hạn 64, hướng dẫn trong pause, mute và reduce effects trong trận. Sửa nhãn nâng cấp thành giảm chu kỳ bắn 12% cho đúng công thức; kết quả thua có thời gian. Ba bộ smoke và import Godot 4.7.2 sạch; test mute/reduce effects PASS. Thiết lập chưa lưu qua restart; phần lưu thuộc M2. Còn nghiệm thu nghe/nhìn và Android thật; không đánh dấu M1 hoàn tất.
+
+
+- Trạng thái cập nhật: nền tảng production đã tách combat/director/recorder/profile; menu chọn vũ khí, 15 nâng cấp, 5 loại địch, 2 elite, boss phút 10, chế độ tập luyện 5 phút, Việt/Anh, profile JSON có backup, âm lượng/nhạc/giảm hiệu ứng, palette mở khóa. Bộ kiểm tra tài nguyên 50 file/0 lỗi; prototype/session/run smoke PASS; stress 70 địch + 600 đạn thân thiện + 240 đạn địch: median 9.6 ms, p95 16.3 ms, max 22.9 ms, static memory ~91 MB. Đã chạy renderer Mobile trên GPU Intel và chụp QA các màn hình. Đã tạo Windows executable và Android debug APK; chưa có Android device kết nối. Chưa phải release production: cần playtest Android, sửa ngưỡng hiệu năng p95, Android SDK/JDK chuẩn, signing keystore phát hành và quyết định nền tảng/phát hành.
+

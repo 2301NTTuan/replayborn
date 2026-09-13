@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "shield"
+title_vi = "Lá chắn"
+title_en = "Shield"
+description_vi = "Thêm 0,15 giây miễn sát thương sau trúng đòn"
+description_en = "Add 0.15s protection after a hit"
+stat = "grace"
+amount = 0.15
+limit = 3

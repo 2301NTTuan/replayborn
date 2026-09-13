@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "reach"
+title_vi = "Tầm xa"
+title_en = "Reach"
+description_vi = "Thời gian tồn tại đạn +20%"
+description_en = "Bullet lifetime +20%"
+stat = "lifetime"
+amount = 0.2
+limit = 4

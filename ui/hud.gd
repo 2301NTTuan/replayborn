@@ -126,7 +126,7 @@ func bind_game(owner_game: Node) -> void:
 	root_control.add_child(xp_progress)
 	pause_button = UI.button(root_control, t("pause"), game.toggle_pause)
 	pause_button.position = Vector2(812, 43)
-	pause_button.size = Vector2(204, 72)
+	pause_button.size = Vector2(164, 82)
 	pause_button.text = "Ⅱ  " + t("pause")
 	joystick = Joystick.new()
 	joystick.name = "Joystick"

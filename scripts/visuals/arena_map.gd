@@ -91,7 +91,7 @@ func _draw() -> void:
 		draw_pylon(pylons[index], index)
 	# Corner brackets and small status lights finish the boundary without visual noise.
 	for corner in [arena.position, Vector2(arena.end.x, arena.position.y), Vector2(arena.position.x, arena.end.y), arena.end]:
-		draw_arc(corner, 42, 0, TAU, 24, Color(accent, 0.45), 4)
+		draw_arc(corner, 28, 0, TAU, 24, Color(accent, 0.45), 3)
 	for y in range(int(arena.position.y) + 100, int(arena.end.y) - 60, 160):
 		draw_circle(Vector2(arena.position.x + 18, y), 4, Color(accent, 0.58 + sin(phase * 2.0 + y) * 0.18))
 		draw_circle(Vector2(arena.end.x - 18, y), 4, Color(accent, 0.58 + sin(phase * 2.0 + y + 1.0) * 0.18))

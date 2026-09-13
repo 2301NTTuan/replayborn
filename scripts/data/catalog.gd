@@ -10,7 +10,11 @@ const ENEMIES: Array = [
 	preload("res://data/enemies/charger.tres"),
 	preload("res://data/enemies/shooter.tres"),
 	preload("res://data/enemies/orbiter.tres"),
-	preload("res://data/enemies/boss.tres")
+	preload("res://data/enemies/boss_warden.tres"),
+	preload("res://data/enemies/boss_hunter.tres"),
+	preload("res://data/enemies/boss_sentinel.tres"),
+	preload("res://data/enemies/boss_reaper.tres"),
+	preload("res://data/enemies/boss_archon.tres")
 ]
 const UPGRADES: Array = [
 	preload("res://data/upgrades/power.tres"), preload("res://data/upgrades/tempo.tres"),

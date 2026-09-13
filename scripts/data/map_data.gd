@@ -10,3 +10,12 @@ extends Resource
 @export var spawn_scale: float = 1.0
 @export var boss_scale: float = 1.0
 
+func enemies_for_stage(stage: int) -> Array[int]:
+	# Every level uses a fixed trio. The map's order changes the trio and its rhythm.
+	var result: Array[int] = []
+	if enemy_order.is_empty():
+		return result
+	var start := posmod(stage, enemy_order.size())
+	for offset in range(mini(3, enemy_order.size())):
+		result.append(enemy_order[(start + offset) % enemy_order.size()])
+	return result

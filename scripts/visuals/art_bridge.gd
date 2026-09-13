@@ -9,6 +9,7 @@ var game: Node
 var map_root: Node2D
 var friendly_projectile: Texture2D
 var hostile_projectile: Texture2D
+var anime_enemy_frames: Dictionary = {}
 
 func _init(owner_game: Node) -> void:
     game = owner_game
@@ -32,6 +33,16 @@ func draw_projectiles(canvas: Node2D) -> void:
 
 func attach_player(player: Node2D, index: int) -> void:
     if player.has_node("ArtVisual"):
+        return
+    if index == 0:
+        var anime_sprite := AnimatedSprite2D.new()
+        anime_sprite.name = "ArtVisual"
+        anime_sprite.sprite_frames = load("res://assets/anime_preview/heroine_run_v1.tres")
+        anime_sprite.scale = Vector2(0.095, 0.095)
+        anime_sprite.position = Vector2(0, -24)
+        anime_sprite.z_index = 10
+        player.add_child(anime_sprite)
+        anime_sprite.play("idle")
         return
     var sprite := AnimatedSprite2D.new()
     sprite.name = "ArtVisual"
@@ -60,20 +71,61 @@ func _attach_equipment_overlays(player: Node2D) -> void:
         player.add_child(overlay)
 
 func update_player(player: Node2D) -> void:
-    var sprite := player.get_node_or_null("ArtVisual") as AnimatedSprite2D
-    if sprite == null:
+    var visual := player.get_node_or_null("ArtVisual") as Node2D
+    if visual == null:
         return
     var moving: bool = player.velocity.length_squared() > 1.0
+    var sprite := visual as AnimatedSprite2D
+    if sprite == null:
+        return
     var wanted := &"run" if moving else &"idle"
     if sprite.animation != wanted:
         sprite.play(wanted)
     if absf(player.velocity.x) > 1.0:
         sprite.flip_h = player.velocity.x < 0.0
 
+func get_anime_enemy_frames(id: String) -> SpriteFrames:
+    if anime_enemy_frames.has(id):
+        return anime_enemy_frames[id]
+    var texture := load("res://assets/anime_preview/%s_run_v1.png" % id) as Texture2D
+    if texture == null:
+        return null
+    var frames := SpriteFrames.new()
+    frames.remove_animation(&"default")
+    frames.add_animation(&"idle")
+    frames.set_animation_speed(&"idle", 1.0)
+    frames.set_animation_loop(&"idle", true)
+    frames.add_animation(&"run")
+    frames.set_animation_speed(&"run", 10.0)
+    frames.set_animation_loop(&"run", true)
+    var frame_width: float = texture.get_width() / 4.0
+    var frame_height: float = texture.get_height()
+    for index in range(4):
+        var atlas := AtlasTexture.new()
+        atlas.atlas = texture
+        atlas.region = Rect2(frame_width * index, 0, frame_width, frame_height)
+        frames.add_frame(&"run", atlas)
+        if index == 0:
+            frames.add_frame(&"idle", atlas)
+    anime_enemy_frames[id] = frames
+    return frames
+
 func attach_enemy(enemy: Node2D) -> void:
     if enemy.has_node("ArtVisual") or enemy.spec == null:
         return
     var id := String(enemy.spec.id)
+    if id in ["chaser", "runner", "charger", "shooter", "orbiter"] or id.begins_with("boss_"):
+        var anime_sprite := AnimatedSprite2D.new()
+        anime_sprite.name = "ArtVisual"
+        anime_sprite.sprite_frames = get_anime_enemy_frames("boss" if id.begins_with("boss_") else id)
+        var visual_scale: float = 0.15 if id.begins_with("boss_") else (0.08 if id == "charger" else 0.07)
+        anime_sprite.scale = Vector2(visual_scale, visual_scale)
+        if id.begins_with("boss_"):
+            anime_sprite.modulate = enemy.spec.tint.lerp(Color.WHITE, 0.42)
+        anime_sprite.z_index = 8
+        enemy.add_child(anime_sprite)
+        anime_sprite.play("run")
+        return
     var sprite := AnimatedSprite2D.new()
     sprite.name = "ArtVisual"
     sprite.sprite_frames = load("res://assets/replayborn/enemies/%s/sprite_frames.tres" % id)
@@ -89,7 +141,10 @@ func attach_enemy(enemy: Node2D) -> void:
     sprite.play("run")
 
 func update_enemy(enemy: Node2D) -> void:
-    var sprite := enemy.get_node_or_null("ArtVisual") as AnimatedSprite2D
+    var visual := enemy.get_node_or_null("ArtVisual") as Node2D
+    if visual == null:
+        return
+    var sprite := visual as AnimatedSprite2D
     if sprite == null:
         return
     if enemy.target != null:
@@ -100,9 +155,9 @@ func attach_echo(echo: Node2D) -> void:
         return
     var sprite := AnimatedSprite2D.new()
     sprite.name = "ArtVisual"
-    sprite.sprite_frames = load("res://assets/replayborn/characters/%s/sprite_frames.tres" % CHARACTERS[clampi(echo.character_index, 0, 9)])
-    sprite.position = Vector2(0, -4)
-    sprite.scale = Vector2(0.82, 0.82)
+    sprite.sprite_frames = load("res://assets/anime_preview/heroine_run_v1.tres")
+    sprite.position = Vector2(0, -24)
+    sprite.scale = Vector2(0.095, 0.095)
     sprite.modulate = Color(echo.tint, 0.58)
     sprite.z_index = 7
     echo.add_child(sprite)

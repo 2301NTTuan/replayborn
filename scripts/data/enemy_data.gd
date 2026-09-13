@@ -1,5 +1,7 @@
 extends Resource
 @export var id: String = "chaser"
+@export var title_vi: String = ""
+@export var title_en: String = ""
 @export var health: float = 3.0
 @export var speed: float = 125.0
 @export var radius: float = 24.0

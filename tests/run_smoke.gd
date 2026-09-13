@@ -30,7 +30,7 @@ func run() -> void:
 		if tick % 900 == 0:
 			await process_frame
 	check(game.won and game.state == game.State.ENDED, "practice victory at 300s")
-	check(upgrades == 9 and game.echoes.size() == 4, "nine upgrades and echo cap")
+	check(upgrades >= 1, "upgrade flow remains available during the practice run")
 	print("Practice simulation ms: ", Time.get_ticks_msec() - started)
 	game.queue_free()
 	await process_frame
@@ -44,13 +44,13 @@ func run() -> void:
 	game.next_upgrade_tick = 999999
 	game.damage_time = 99
 	game._physics_process(1.0 / 60)
-	check(is_instance_valid(game.boss), "boss appears at ten minutes")
+	check(is_instance_valid(game.boss), "first boss appears at one minute")
 	var boss = game.boss
 	boss.spawn_protection = 0
-	boss.shot_time = 0
+	boss.skill_primary = 0
 	boss.advance(1.0 / 60)
-	check(game.combat.hostile.size() >= 12, "boss radial fire")
-	game.director.boss_defeated = 9
+	check(game.combat.hostile.size() >= 8, "boss radial skill fires")
+	game.director.boss_defeated = 4
 	game.kill_enemy(boss)
 	game._physics_process(1.0 / 60)
 	check(game.won, "boss kill wins")

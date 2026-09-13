@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "boss_reaper"
+title_vi = "Tử Thần Phân Mảnh"
+title_en = "Shard Reaper"
+health = 1080.0
+speed = 96.0
+radius = 74.0
+damage = 36
+tint = Color(0.72, 0.30, 1, 1)

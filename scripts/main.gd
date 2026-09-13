@@ -51,13 +51,14 @@ func _ready() -> void:
 	profile = get_node("/root/Profile")
 	practice = profile.practice
 	weapon = Catalog.WEAPONS[clampi(profile.selected_weapon, 0, 2)]
-	map_data = Catalog.MAPS[clampi(profile.data.map, 0, 9)]
+	# Current vertical slice deliberately ships one hero and one arena.
+	map_data = Catalog.MAPS[0]
 	sound = SoundBank.new()
 	add_child(sound)
 	combat = Combat.new(self)
 	director = Director.new(self)
 	player.arena = ARENA
-	player.configure_character(profile.data.character)
+	player.configure_character(0)
 	player.configure_equipment(profile.data.equipment)
 	profile.settings_changed.connect(apply_settings)
 	apply_settings()
@@ -184,7 +185,7 @@ func spawn_enemy(data: Resource, elite: int = 0, difficulty: float = 1.0) -> Nod
 	enemy.position = Vector2(randf_range(area.position.x, area.end.x), area.position.y if edge == 0 else area.end.y) if edge < 2 else Vector2(area.position.x if edge == 2 else area.end.x, randf_range(area.position.y, area.end.y))
 	if enemy.position.distance_to(player.position) < 250:
 		enemy.position = area.position + area.end - enemy.position
-	if data.id == "boss":
+	if String(data.id).begins_with("boss_"):
 		boss = enemy
 		enemy.spawn_protection = 2.0
 	add_child(enemy)
@@ -206,9 +207,9 @@ func kill_enemy(enemy: Node2D) -> void:
 		return
 	enemy.dead = true
 	kills += 1
-	spawn_xp_orb(enemy.position, 5 + enemy.elite * 4 + (12 if enemy.spec.id == "boss" else 0))
+	spawn_xp_orb(enemy.position, 5 + enemy.elite * 4 + (12 if String(enemy.spec.id).begins_with("boss_") else 0))
 	health = minf(max_health, health + stats.siphon) if health > 0 else 0
-	if enemy.spec.id == "boss":
+	if String(enemy.spec.id).begins_with("boss_"):
 		director.complete_boss()
 
 func spawn_xp_orb(at: Vector2, amount: int) -> void:

@@ -41,12 +41,12 @@ func show_home() -> void:
 	if not profile.warning.is_empty():
 		UI.label(body, t(profile.warning), 24, true)
 	UI.label(body, t("weapon"), 26)
-	UI.button(body, t("character_menu"), show_character_select)
-	UI.button(body, t("map_menu"), show_map_select)
+	UI.label(body, "HERO DUY NHẤT  ·  ASTRIA", 28, true)
+	UI.label(body, "MAP 01  ·  TÀN TÍCH NEON", 24, true)
 	UI.button(body, t("loadout"), show_loadout)
 	UI.button(body, t("shop"), show_shop)
 	UI.button(body, t("missions"), show_missions)
-	var selected := UI.label(body, "%s: %d  ·  %s: %d" % [t("selected_character"), profile.data.character + 1, t("selected_map"), profile.data.map + 1], 24, true)
+	var selected := UI.label(body, "ASTRIA  ·  TÀN TÍCH NEON", 24, true)
 	var weapon_picker := OptionButton.new()
 	weapon_picker.custom_minimum_size.y = 90
 	for weapon in Catalog.WEAPONS:
@@ -163,7 +163,7 @@ func show_map_select() -> void:
 	UI.clear(body)
 	show_back_button()
 	UI.label(body, t("map_menu"), 44, true)
-	UI.label(body, "10 map · mỗi map 10 level · mỗi level 1 boss", 23, true)
+	UI.label(body, "10 map · mỗi map 5 level · 3 loại quái/mức · 5 boss riêng", 23, true)
 	for index in range(Catalog.MAPS.size()):
 		var thumb := MapThumb.new()
 		thumb.custom_minimum_size = Vector2(0, 190)

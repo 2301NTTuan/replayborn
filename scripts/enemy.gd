@@ -17,6 +17,11 @@ var spawn_protection: float = 0.7
 var orbit_sign: float = 1
 var dead: bool = false
 var serial: int = 0
+var skill_primary: float = 1.1
+var skill_secondary: float = 2.7
+var skill_tertiary: float = 4.6
+var dash_time: float = 0.0
+var dash_vector: Vector2 = Vector2.ZERO
 
 func setup(data: Resource, owner_game: Node, variant: int, difficulty: float) -> void:
 	spec = data
@@ -39,42 +44,96 @@ func advance(delta: float) -> void:
 	cycle += delta
 	shot_time -= delta
 	var direction: Vector2 = position.direction_to(target.position)
-	match spec.id:
-		"charger":
-			if cycle < 1.6:
+	if String(spec.id).begins_with("boss_"):
+		_advance_boss(delta, direction)
+	else:
+		match spec.id:
+			"charger":
+				if cycle < 1.6:
+					position += direction * speed * delta
+					dash_direction = direction
+				elif cycle >= 2.3 and cycle < 2.8:
+					position += dash_direction * 620 * delta
+				elif cycle >= 2.8:
+					cycle = 0
+			"shooter":
+				var distance: float = position.distance_to(target.position)
+				if distance > 460:
+					position += direction * speed * delta
+				elif distance < 300:
+					position -= direction * speed * delta
+				if shot_time <= 0:
+					game.combat.enemy_shot(position, direction, 280, 8)
+					shot_time = 2.2
+			"orbiter":
+				var tangent := Vector2(-direction.y, direction.x) * orbit_sign
+				position += (direction * 0.65 + tangent * 0.75).normalized() * speed * delta
+			_:
 				position += direction * speed * delta
-				dash_direction = direction
-			elif cycle >= 2.3 and cycle < 2.8:
-				position += dash_direction * 620 * delta
-			elif cycle >= 2.8:
-				cycle = 0
-		"shooter":
-			var distance: float = position.distance_to(target.position)
-			if distance > 460:
-				position += direction * speed * delta
-			elif distance < 300:
-				position -= direction * speed * delta
-			if shot_time <= 0:
-				game.combat.enemy_shot(position, direction, 280, 8)
-				shot_time = 2.2
-		"orbiter":
-			var tangent := Vector2(-direction.y, direction.x) * orbit_sign
-			position += (direction * 0.65 + tangent * 0.75).normalized() * speed * delta
-		"boss":
-			position += direction * speed * delta
-			if shot_time <= 0:
-				var count: int = 12 if health > max_health * 0.5 else 18
-				for index in range(count):
-					game.combat.enemy_shot(position, Vector2.RIGHT.rotated(TAU * index / count + cycle * 0.2), 230, 12)
-				shot_time = 2.0 if count == 12 else 1.4
-		_:
-			position += direction * speed * delta
 	if elite == 2 and shot_time <= 0:
 		for index in range(4):
 			game.combat.enemy_shot(position, Vector2.RIGHT.rotated(TAU * index / 4), 210, 8)
 		shot_time = 2.8
 	position = position.clamp(game.ARENA.position + Vector2.ONE * radius, game.ARENA.end - Vector2.ONE * radius)
 	queue_redraw()
+
+func _advance_boss(delta: float, direction: Vector2) -> void:
+	# Every boss owns three independent attacks. The later variants use faster, denser patterns.
+	var rank := _boss_rank()
+	skill_primary -= delta
+	skill_secondary -= delta
+	skill_tertiary -= delta
+	if dash_time > 0:
+		dash_time -= delta
+		position += dash_vector * (510.0 + rank * 35.0) * delta
+	else:
+		position += direction * speed * delta
+	if skill_primary <= 0:
+		_boss_ring(8 + rank * 2, 205.0 + rank * 18.0, 10 + rank * 2)
+		skill_primary = maxf(1.15, 2.45 - rank * 0.16)
+	if skill_secondary <= 0:
+		_boss_fan(direction, 3 + rank, 0.20 + rank * 0.035, 300.0 + rank * 16.0, 12 + rank * 2)
+		skill_secondary = maxf(1.7, 3.7 - rank * 0.20)
+	if skill_tertiary <= 0:
+		match String(spec.id):
+			"boss_warden":
+				_boss_cross(250.0, 16)
+			"boss_hunter":
+				dash_vector = direction
+				dash_time = 0.55
+				_boss_fan(direction, 5, 0.14, 360.0, 16)
+			"boss_sentinel":
+				_boss_ring(18, 165.0, 14)
+				_boss_cross(300.0, 15)
+			"boss_reaper":
+				dash_vector = direction.rotated(0.35 if orbit_sign > 0 else -0.35)
+				dash_time = 0.7
+				_boss_ring(14, 290.0, 18)
+			"boss_archon":
+				_boss_ring(24, 255.0, 20)
+				_boss_fan(direction, 9, 0.13, 380.0, 20)
+		skill_tertiary = maxf(2.6, 5.6 - rank * 0.35)
+
+func _boss_rank() -> int:
+	match String(spec.id):
+		"boss_hunter": return 1
+		"boss_sentinel": return 2
+		"boss_reaper": return 3
+		"boss_archon": return 4
+	return 0
+
+func _boss_ring(count: int, projectile_speed: float, damage: int) -> void:
+	for index in range(count):
+		game.combat.enemy_shot(position, Vector2.RIGHT.rotated(TAU * index / count + cycle * 0.28), projectile_speed, damage)
+
+func _boss_fan(direction: Vector2, count: int, spacing: float, projectile_speed: float, damage: int) -> void:
+	for index in range(count):
+		var angle := (float(index) - float(count - 1) * 0.5) * spacing
+		game.combat.enemy_shot(position, direction.rotated(angle), projectile_speed, damage)
+
+func _boss_cross(projectile_speed: float, damage: int) -> void:
+	for index in range(4):
+		game.combat.enemy_shot(position, Vector2.RIGHT.rotated(TAU * index / 4 + cycle * 0.15), projectile_speed, damage)
 
 func _draw() -> void:
 	if spec == null:

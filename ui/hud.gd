@@ -105,7 +105,8 @@ func refresh() -> void:
 	xp_progress.max_value = game.xp_to_next
 	xp_progress.value = game.run_xp
 	if is_instance_valid(game.boss) and not game.boss.dead:
-		boss_label.text = "%s  ·  %d / %d" % [t("boss"), ceili(game.boss.health), ceili(game.boss.max_health)]
+		var boss_name: String = game.boss.spec.title_en if game.profile.data.language == "en" else game.boss.spec.title_vi
+		boss_label.text = "%s · %s  ·  %d / %d" % [t("boss"), boss_name, ceili(game.boss.health), ceili(game.boss.max_health)]
 	else:
 		boss_label.text = ""
 

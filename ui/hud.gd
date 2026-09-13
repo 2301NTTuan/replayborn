@@ -12,6 +12,9 @@ var xp_progress: ProgressBar
 var health_bar: ProgressBar
 var joystick: Control
 var overlay: ColorRect
+var overlay_panel: Panel
+var overlay_title: Label
+var overlay_kicker: Label
 var body: VBoxContainer
 var announcement: Label
 var announcement_left: float = 0
@@ -29,44 +32,48 @@ func bind_game(owner_game: Node) -> void:
 	root_control.theme = UI.theme()
 	root_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root_control)
-	var top_panel := ColorRect.new()
-	top_panel.position = Vector2(35, 28)
-	top_panel.size = Vector2(1010, 275)
-	top_panel.color = Color(0.035, 0.08, 0.14, 0.92)
+	var top_panel := Panel.new()
+	top_panel.position = Vector2(30, 24)
+	top_panel.size = Vector2(1020, 288)
+	top_panel.add_theme_stylebox_override("panel", UI.box(Color("09182a", 0.94), 22, Color("315976"), 2))
 	root_control.add_child(top_panel)
 	var top_line := ColorRect.new()
-	top_line.position = Vector2(35, 298)
-	top_line.size = Vector2(1010, 4)
-	top_line.color = Color("62eacb")
+	top_line.position = Vector2(54, 304)
+	top_line.size = Vector2(972, 3)
+	top_line.color = Color("55ebd2")
 	root_control.add_child(top_line)
-	clock_label = UI.label(root_control, "00:00", 52)
-	clock_label.position = Vector2(60, 45)
-	clock_label.size = Vector2(680, 70)
-	stats_label = UI.label(root_control, "", 27)
-	stats_label.position = Vector2(60, 122)
-	stats_label.size = Vector2(920, 44)
+	clock_label = UI.label(root_control, "00:00", 54)
+	clock_label.position = Vector2(60, 42)
+	clock_label.size = Vector2(520, 70)
+	clock_label.add_theme_color_override("font_color", Color("effbff"))
+	stats_label = UI.label(root_control, "", 24)
+	stats_label.position = Vector2(62, 119)
+	stats_label.size = Vector2(720, 42)
+	stats_label.add_theme_color_override("font_color", Color("aec4d7"))
 	health_bar = ProgressBar.new()
-	health_bar.position = Vector2(60, 172)
-	health_bar.size = Vector2(960, 15)
+	health_bar.position = Vector2(60, 171)
+	health_bar.size = Vector2(960, 18)
 	health_bar.show_percentage = false
 	root_control.add_child(health_bar)
-	echo_label = UI.label(root_control, "", 25)
-	echo_label.position = Vector2(60, 200)
+	echo_label = UI.label(root_control, "", 22)
+	echo_label.position = Vector2(62, 204)
 	echo_label.size = Vector2(960, 35)
+	echo_label.add_theme_color_override("font_color", Color("a8c7d3"))
 	progress = ProgressBar.new()
 	progress.position = Vector2(60, 246)
-	progress.size = Vector2(960, 12)
+	progress.size = Vector2(960, 13)
 	progress.max_value = 900
 	progress.show_percentage = false
 	root_control.add_child(progress)
 	xp_progress = ProgressBar.new()
-	xp_progress.position = Vector2(60, 270)
-	xp_progress.size = Vector2(960, 10)
+	xp_progress.position = Vector2(60, 274)
+	xp_progress.size = Vector2(960, 9)
 	xp_progress.show_percentage = false
 	root_control.add_child(xp_progress)
 	pause_button = UI.button(root_control, t("pause"), game.toggle_pause)
-	pause_button.position = Vector2(815, 45)
-	pause_button.size = Vector2(205, 68)
+	pause_button.position = Vector2(828, 47)
+	pause_button.size = Vector2(188, 64)
+	pause_button.text = "Ⅱ  " + t("pause")
 	joystick = Joystick.new()
 	joystick.name = "Joystick"
 	# The joystick is an invisible full-playfield touch layer with no visual.
@@ -76,22 +83,49 @@ func bind_game(owner_game: Node) -> void:
 	joystick.direction_changed.connect(func(direction: Vector2) -> void: game.player.touch_direction = direction)
 	root_control.add_child(joystick)
 	announcement = UI.label(root_control, "", 30, true)
-	announcement.position = Vector2(80, 335)
-	announcement.size = Vector2(920, 90)
+	announcement.position = Vector2(110, 338)
+	announcement.size = Vector2(860, 76)
+	announcement.add_theme_color_override("font_color", Color("ffd26a"))
 	pickup_label = UI.label(root_control, "", 24, true)
-	pickup_label.position = Vector2(220, 305)
+	pickup_label.position = Vector2(220, 315)
 	pickup_label.size = Vector2(640, 40)
-	boss_label = UI.label(root_control, "", 25, true)
+	boss_label = UI.label(root_control, "", 24, true)
 	boss_label.position = Vector2(80, 425)
 	boss_label.size = Vector2(920, 45)
+	boss_label.add_theme_color_override("font_color", Color("ffb0cb"))
 	var hint := UI.label(root_control, t("hint"), 23, true)
-	hint.position = Vector2(50, 1850)
+	hint.position = Vector2(50, 1840)
 	hint.size = Vector2(980, 40)
+	hint.add_theme_color_override("font_color", Color("7894ad"))
 	overlay = ColorRect.new()
-	overlay.color = Color(0.025, 0.045, 0.085, 0.97)
+	overlay.color = Color(0.012, 0.026, 0.055, 0.96)
 	overlay.size = Vector2(1080, 1920)
 	root_control.add_child(overlay)
-	body = UI.column(overlay, Rect2(115, 275, 850, 1410))
+	for index in range(6):
+		var beam := ColorRect.new()
+		beam.position = Vector2(0, 120 + index * 270)
+		beam.size = Vector2(1080, 1)
+		beam.color = Color("54d8d1", 0.10)
+		overlay.add_child(beam)
+	overlay_panel = Panel.new()
+	overlay_panel.position = Vector2(42, 130)
+	overlay_panel.size = Vector2(996, 1660)
+	overlay_panel.add_theme_stylebox_override("panel", UI.box(Color("09182b", 0.97), 30, Color("39627d"), 2))
+	overlay.add_child(overlay_panel)
+	var cyan_rule := ColorRect.new()
+	cyan_rule.position = Vector2(34, 154)
+	cyan_rule.size = Vector2(928, 3)
+	cyan_rule.color = Color("55ebd2")
+	overlay_panel.add_child(cyan_rule)
+	overlay_kicker = UI.label(overlay_panel, "SYSTEM / REPLAYBORN", 18, true)
+	overlay_kicker.position = Vector2(46, 42)
+	overlay_kicker.size = Vector2(904, 28)
+	overlay_kicker.add_theme_color_override("font_color", Color("55ebd2"))
+	overlay_title = UI.label(overlay_panel, "", 52, true)
+	overlay_title.position = Vector2(46, 76)
+	overlay_title.size = Vector2(904, 66)
+	overlay_title.add_theme_color_override("font_color", Color("effbff"))
+	body = UI.column(overlay_panel, Rect2(38, 194, 920, 1398))
 	overlay.hide()
 	refresh()
 
@@ -116,61 +150,96 @@ func show_overlay(title: String) -> void:
 	joystick.set_process_input(false)
 	pause_button.disabled = true
 	UI.clear(body)
+	overlay_title.text = title
+	overlay_kicker.text = "SYSTEM / REPLAYBORN"
 	overlay.show()
-	UI.label(body, title, 46, true)
+
+func overlay_note(value: String) -> void:
+	var note := UI.label(body, value, 20, true)
+	note.add_theme_color_override("font_color", Color("91abc1"))
 
 func close_overlay() -> void:
 	overlay.hide()
 	joystick.show()
 	joystick.set_process_input(true)
 	pause_button.disabled = false
-	pause_button.text = t("pause")
+	pause_button.text = "Ⅱ  " + t("pause")
 
 func show_pause() -> void:
 	show_overlay(t("pause"))
-	UI.button(body, t("resume"), game.toggle_pause).grab_focus()
-	UI.button(body, t("restart"), func() -> void: confirm_exit(game.restart_run))
-	UI.button(body, t("settings"), show_settings)
-	UI.button(body, t("help"), show_help)
-	UI.button(body, t("home"), func() -> void: confirm_exit(game.return_home))
+	overlay_kicker.text = "RUN PAUSED  /  SESSION SAFE"
+	overlay_note("Dữ liệu vòng lặp hiện tại vẫn được giữ nguyên.")
+	UI.primary_button(body, "▶  " + t("resume"), game.toggle_pause, 108).grab_focus()
+	UI.button(body, "↻  " + t("restart"), func() -> void: confirm_exit(game.restart_run), 88)
+	UI.button(body, "⚙  " + t("settings"), show_settings, 88)
+	UI.button(body, "?  " + t("help"), show_help, 88)
+	UI.danger_button(body, "⌂  " + t("home"), func() -> void: confirm_exit(game.return_home), 88)
 
 func confirm_exit(action: Callable) -> void:
 	show_overlay(t("abandon"))
-	UI.button(body, t("confirm"), action)
-	UI.button(body, t("cancel"), show_pause).grab_focus()
+	overlay_kicker.text = "CONFIRMATION REQUIRED"
+	overlay_note("Kết thúc phiên sẽ xoá tiến trình trong trận hiện tại.")
+	UI.danger_button(body, t("confirm"), action, 96)
+	UI.button(body, t("cancel"), show_pause, 88).grab_focus()
 
 func show_settings() -> void:
 	show_overlay(t("settings"))
+	overlay_kicker.text = "SYSTEM CONFIGURATION"
 	UI.settings(body, game.profile, show_settings)
-	UI.button(body, t("back"), show_pause)
+	UI.button(body, "←  " + t("back"), show_pause)
 
 func show_help() -> void:
 	show_overlay(t("help"))
-	UI.label(body, t("help_body"), 29)
-	UI.button(body, t("back"), show_pause)
+	overlay_kicker.text = "FIELD MANUAL"
+	var guide := UI.card(body, Color("315976"))
+	UI.label(guide, t("help_body"), 27)
+	UI.button(body, "←  " + t("back"), show_pause)
 
 func show_tutorial() -> void:
 	show_overlay(t("help"))
-	UI.label(body, t("help_body"), 29)
-	UI.button(body, t("ready"), game.begin_play).grab_focus()
+	overlay_kicker.text = "MISSION BRIEFING"
+	var guide := UI.card(body, Color("315976"))
+	UI.label(guide, t("help_body"), 27)
+	UI.primary_button(body, "▶  " + t("ready"), game.begin_play, 104).grab_focus()
 
 func show_upgrades(offers: Array) -> void:
 	show_overlay(t("choose"))
+	overlay_kicker.text = "LEVEL UP  /  SELECT ONE AUGMENT"
+	overlay_note("Chọn một nâng cấp để định hình vòng lặp hiện tại.")
+	var accents := [Color("55ebd2"), Color("ffd26a"), Color("b78cff")]
 	for index in range(offers.size()):
+		var offer_index := index
 		var item: Resource = offers[index]
 		var english: bool = game.profile.data.language == "en"
 		var title: String = item.title_en if english else item.title_vi
 		var description: String = item.description_en if english else item.description_vi
-		UI.button(body, title, func() -> void: game.apply_upgrade(index), 110)
-		UI.label(body, description, 27)
+		var offer := UI.card(body, accents[index % accents.size()])
+		var offer_panel := offer.get_parent() as PanelContainer
+		offer_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+		offer_panel.gui_input.connect(func(event: InputEvent) -> void:
+			if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+				game.apply_upgrade(offer_index))
+		offer_panel.mouse_entered.connect(func() -> void:
+			offer_panel.add_theme_stylebox_override("panel", UI.box(Color("17364c"), 22, accents[index % accents.size()], 3)))
+		offer_panel.mouse_exited.connect(func() -> void:
+			offer_panel.add_theme_stylebox_override("panel", UI.box(UI.SURFACE, 22, accents[index % accents.size()], 2)))
+		UI.caption(offer, "AUGMENT %02d" % (index + 1))
+		var title_label := UI.label(offer, title, 31)
+		title_label.add_theme_color_override("font_color", accents[index % accents.size()])
+		var description_label := UI.label(offer, description, 22)
+		description_label.add_theme_color_override("font_color", Color("b7c9d9"))
+		var tap_hint := UI.label(offer, "CHẠM VÀO THẺ ĐỂ CHỌN", 18, true)
+		tap_hint.add_theme_color_override("font_color", accents[index % accents.size()])
 
 func show_result() -> void:
 	show_overlay(t("win" if game.won else "lose"))
-	UI.label(body, t("result") % [int(game.run_time) / 60, int(game.run_time) % 60, game.kills], 32, true)
+	overlay_kicker.text = "RUN REPORT  /  ECHO ARCHIVE"
+	var report := UI.card(body, Color("ffd26a") if game.won else Color("a95070"))
+	UI.label(report, t("result") % [int(game.run_time) / 60, int(game.run_time) % 60, game.kills], 31, true)
 	if not game.profile.warning.is_empty():
 		UI.label(body, t(game.profile.warning), 25)
-	UI.button(body, t("restart"), game.restart_run).grab_focus()
-	UI.button(body, t("home"), game.return_home)
+	UI.primary_button(body, "↻  " + t("restart"), game.restart_run, 100).grab_focus()
+	UI.button(body, "⌂  " + t("home"), game.return_home)
 
 func announce(key: String) -> void:
 	announcement.text = t(key) % (game.director.stage + 1) if key in ["boss_arrives", "level_cleared"] else t(key)

@@ -138,6 +138,7 @@ func _physics_process(delta: float) -> void:
 			xp_orbs.remove_at(index)
 	for echo in echoes:
 		echo.advance()
+		art.update_echo(echo)
 	var fired: Array = combat.fire(nearest_enemy(), delta)
 	if recorder.record(player.position, fired):
 		create_echo()

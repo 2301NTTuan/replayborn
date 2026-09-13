@@ -1,35 +1,54 @@
 extends RefCounted
 const Words = preload("res://scripts/core/words.gd")
 
+const INK := Color("eaf4ff")
+const MUTED := Color("8ea7bf")
+const CYAN := Color("55ebd2")
+const CYAN_DARK := Color("0e726d")
+const SURFACE := Color("101e31")
+const SURFACE_ALT := Color("162a42")
+
 static func text(key: String, profile: Node) -> String:
 	return Words.get_text(key, profile.data.language)
+
+static func box(color: Color, radius: int = 18, border: Color = Color.TRANSPARENT, border_width: int = 0) -> StyleBoxFlat:
+	var result := StyleBoxFlat.new()
+	result.bg_color = color
+	result.set_corner_radius_all(radius)
+	result.border_color = border
+	result.set_border_width_all(border_width)
+	result.set_content_margin_all(18)
+	return result
 
 static func theme() -> Theme:
 	var result := Theme.new()
 	result.default_font_size = 27
-	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var box := StyleBoxFlat.new()
-		box.bg_color = Color("16283f") if state == "normal" else Color("254a62")
-		if state == "pressed":
-			box.bg_color = Color("316d7b")
-		if state == "disabled":
-			box.bg_color = Color("172030")
-		box.set_corner_radius_all(18)
-		box.set_content_margin_all(18)
-		box.border_color = Color("6fffe0") if state == "focus" else Color("294b67")
-		box.set_border_width_all(3 if state == "focus" else 2)
-		result.set_stylebox(state, "Button", box)
-	result.set_color("font_color", "Label", Color("dce7f4"))
-	result.set_color("font_color", "Button", Color("edf6ff"))
-	result.set_color("font_hover_color", "Button", Color("ffffff"))
-	var background := StyleBoxFlat.new()
-	background.bg_color = Color("25354c")
-	background.set_corner_radius_all(6)
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = Color("62eacb")
-	fill.set_corner_radius_all(6)
-	result.set_stylebox("background", "ProgressBar", background)
-	result.set_stylebox("fill", "ProgressBar", fill)
+	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var color := SURFACE_ALT
+		if state == "hover": color = Color("1e3d58")
+		elif state == "pressed": color = Color("0d6070")
+		elif state == "disabled": color = Color("172233")
+		var border := CYAN if state == "focus" else Color("294c68")
+		result.set_stylebox(state, "Button", box(color, 18, border, 3 if state == "focus" else 2))
+		var primary_color := CYAN_DARK
+		if state == "hover": primary_color = Color("149a8e")
+		elif state == "pressed": primary_color = Color("075150")
+		elif state == "disabled": primary_color = Color("1b3942")
+		result.set_stylebox(state, "PrimaryButton", box(primary_color, 20, Color("93fff0") if state == "focus" else CYAN, 3 if state == "focus" else 2))
+		var danger_color := Color("582c45") if state == "normal" else Color("793552")
+		result.set_stylebox(state, "DangerButton", box(danger_color, 18, Color("9b506f"), 2))
+	result.set_type_variation("PrimaryButton", "Button")
+	result.set_type_variation("DangerButton", "Button")
+	result.set_color("font_color", "Label", INK)
+	result.set_color("font_color", "Button", INK)
+	result.set_color("font_hover_color", "Button", Color.WHITE)
+	result.set_color("font_pressed_color", "Button", Color("c9fff6"))
+	result.set_color("font_disabled_color", "Button", MUTED)
+	result.set_stylebox("normal", "OptionButton", box(SURFACE_ALT, 16, Color("315976"), 2))
+	result.set_stylebox("hover", "OptionButton", box(Color("1e3d58"), 16, CYAN, 2))
+	result.set_stylebox("focus", "OptionButton", box(Color("1e3d58"), 16, CYAN, 3))
+	result.set_stylebox("background", "ProgressBar", box(Color("07111f"), 8, Color("294b67"), 1))
+	result.set_stylebox("fill", "ProgressBar", box(CYAN, 8))
 	return result
 
 static func label(parent: Node, value: String, font_size: int = 28, centered: bool = false) -> Label:
@@ -42,13 +61,40 @@ static func label(parent: Node, value: String, font_size: int = 28, centered: bo
 	parent.add_child(item)
 	return item
 
+static func caption(parent: Node, value: String, centered: bool = false) -> Label:
+	var item := label(parent, value.to_upper(), 18, centered)
+	item.add_theme_color_override("font_color", CYAN)
+	return item
+
 static func button(parent: Node, value: String, callback: Callable, height: float = 88) -> Button:
 	var item := Button.new()
 	item.text = value
 	item.custom_minimum_size.y = height
+	item.add_theme_font_size_override("font_size", 27)
 	item.pressed.connect(callback)
 	parent.add_child(item)
 	return item
+
+static func primary_button(parent: Node, value: String, callback: Callable, height: float = 104) -> Button:
+	var item := button(parent, value, callback, height)
+	item.theme_type_variation = &"PrimaryButton"
+	item.add_theme_font_size_override("font_size", 32)
+	return item
+
+static func danger_button(parent: Node, value: String, callback: Callable, height: float = 88) -> Button:
+	var item := button(parent, value, callback, height)
+	item.theme_type_variation = &"DangerButton"
+	return item
+
+static func card(parent: Node, accent: Color = Color("315976")) -> VBoxContainer:
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", box(SURFACE, 22, accent, 2))
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(panel)
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 10)
+	panel.add_child(content)
+	return content
 
 static func clear(parent: Node) -> void:
 	for child in parent.get_children():
@@ -68,39 +114,43 @@ static func column(parent: Node, rect: Rect2) -> VBoxContainer:
 	return result
 
 static func settings(parent: Node, profile: Node, language_changed: Callable) -> void:
+	var sound_card := card(parent)
+	caption(sound_card, "Âm thanh / Audio")
 	for key in ["volume", "music"]:
-		label(parent, text(key, profile))
+		label(sound_card, text(key, profile), 26)
 		var slider := HSlider.new()
 		slider.min_value = 0
 		slider.max_value = 1
 		slider.step = 0.05
 		slider.value = profile.data[key]
-		slider.custom_minimum_size.y = 65
+		slider.custom_minimum_size.y = 52
 		slider.value_changed.connect(func(value: float) -> void: profile.setting(key, value))
-		parent.add_child(slider)
+		sound_card.add_child(slider)
+	var access_card := card(parent)
+	caption(access_card, "Trải nghiệm / Experience")
 	var reduced := CheckButton.new()
 	reduced.text = text("reduced", profile)
-	reduced.custom_minimum_size.y = 80
+	reduced.custom_minimum_size.y = 62
 	reduced.button_pressed = profile.data.reduced
 	reduced.toggled.connect(func(value: bool) -> void: profile.setting("reduced", value))
-	parent.add_child(reduced)
-	label(parent, text("language", profile))
+	access_card.add_child(reduced)
+	label(access_card, text("language", profile), 26)
 	var language := OptionButton.new()
-	language.custom_minimum_size.y = 85
+	language.custom_minimum_size.y = 76
 	language.add_item("Tiếng Việt")
 	language.add_item("English")
 	language.select(0 if profile.data.language == "vi" else 1)
 	language.item_selected.connect(func(index: int) -> void:
 		profile.setting("language", "vi" if index == 0 else "en")
 		language_changed.call_deferred())
-	parent.add_child(language)
-	label(parent, "Màu bản sao" if profile.data.language == "vi" else "Echo color")
+	access_card.add_child(language)
+	label(access_card, "Màu bản sao" if profile.data.language == "vi" else "Echo color", 26)
 	var palette := OptionButton.new()
-	palette.custom_minimum_size.y = 85
+	palette.custom_minimum_size.y = 76
 	var names: Array = ["Lam / Blue", "Vàng / Gold · 100 kills", "Tím / Violet · 1 win"]
 	for index in range(3):
 		palette.add_item(names[index])
 		palette.set_item_disabled(index, not profile.palette_unlocked(index))
 	palette.select(profile.data.palette)
 	palette.item_selected.connect(func(index: int) -> void: profile.setting("palette", index))
-	parent.add_child(palette)
+	access_card.add_child(palette)

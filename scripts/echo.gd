@@ -9,6 +9,7 @@ var tint: Color = Color("86a8ff")
 var character_index: int = 0
 var gender: int = 0
 var archetype: int = 0
+var motion: Vector2 = Vector2.ZERO
 
 func setup(recording: Dictionary, game: Node, serial: int) -> void:
 	tape = recording
@@ -23,7 +24,9 @@ func setup(recording: Dictionary, game: Node, serial: int) -> void:
 func advance() -> void:
 	if tape.is_empty():
 		return
-	position = tape.positions[tick + 1]
+	var next_position: Vector2 = tape.positions[tick + 1]
+	motion = next_position - position
+	position = next_position
 	while shot_index < tape.shots.size() and tape.shots[shot_index].tick == tick:
 		var shot: Dictionary = tape.shots[shot_index].shot.duplicate(true)
 		shot.ghost = true

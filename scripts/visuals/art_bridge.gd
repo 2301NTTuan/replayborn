@@ -37,7 +37,7 @@ func attach_player(player: Node2D, index: int) -> void:
     if index == 0:
         var anime_sprite := AnimatedSprite2D.new()
         anime_sprite.name = "ArtVisual"
-        anime_sprite.sprite_frames = load("res://assets/anime_preview/heroine_run_v1.tres")
+        anime_sprite.sprite_frames = load("res://assets/original_v1/astria_sprite_frames.tres")
         anime_sprite.scale = Vector2(0.095, 0.095)
         anime_sprite.position = Vector2(0, -24)
         anime_sprite.z_index = 10
@@ -87,7 +87,7 @@ func update_player(player: Node2D) -> void:
 func get_anime_enemy_frames(id: String) -> SpriteFrames:
     if anime_enemy_frames.has(id):
         return anime_enemy_frames[id]
-    var texture := load("res://assets/anime_preview/%s_run_v1.png" % id) as Texture2D
+    var texture := load("res://assets/original_v1/%s_run_v1.png" % id) as Texture2D
     if texture == null:
         return null
     var frames := SpriteFrames.new()
@@ -117,7 +117,7 @@ func attach_enemy(enemy: Node2D) -> void:
     if id in ["chaser", "runner", "charger", "shooter", "orbiter"] or id.begins_with("boss_"):
         var anime_sprite := AnimatedSprite2D.new()
         anime_sprite.name = "ArtVisual"
-        anime_sprite.sprite_frames = get_anime_enemy_frames("boss" if id.begins_with("boss_") else id)
+        anime_sprite.sprite_frames = get_anime_enemy_frames("archive_colossus" if id.begins_with("boss_") else "rift_crawler")
         var visual_scale: float = 0.15 if id.begins_with("boss_") else (0.08 if id == "charger" else 0.07)
         anime_sprite.scale = Vector2(visual_scale, visual_scale)
         if id.begins_with("boss_"):
@@ -155,13 +155,24 @@ func attach_echo(echo: Node2D) -> void:
         return
     var sprite := AnimatedSprite2D.new()
     sprite.name = "ArtVisual"
-    sprite.sprite_frames = load("res://assets/anime_preview/heroine_run_v1.tres")
+    sprite.sprite_frames = load("res://assets/original_v1/astria_sprite_frames.tres")
     sprite.position = Vector2(0, -24)
     sprite.scale = Vector2(0.095, 0.095)
     sprite.modulate = Color(echo.tint, 0.58)
     sprite.z_index = 7
     echo.add_child(sprite)
-    sprite.play("run")
+    sprite.play("idle")
+
+func update_echo(echo: Node2D) -> void:
+    var sprite := echo.get_node_or_null("ArtVisual") as AnimatedSprite2D
+    if sprite == null:
+        return
+    var moving: bool = echo.motion.length_squared() > 1.0
+    var wanted := &"run" if moving else &"idle"
+    if sprite.animation != wanted:
+        sprite.play(wanted)
+    if absf(echo.motion.x) > 1.0:
+        sprite.flip_h = echo.motion.x < 0.0
 
 func setup_map(map_id: String) -> void:
     map_root = Node2D.new()

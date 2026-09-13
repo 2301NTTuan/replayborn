@@ -1,0 +1,37 @@
+# Godot editor cache and generated metadata
+.godot/
+.import/
+.mono/
+
+# Exported games and build output
+builds/
+exports/
+export/
+*.apk
+*.aab
+*.ipa
+*.exe
+*.pck
+*.zip
+
+# Local editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporary and backup files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Android signing material and local secrets
+*.keystore
+*.jks
+*.p12
+*.pem
+.env
+.env.*
+!.env.example

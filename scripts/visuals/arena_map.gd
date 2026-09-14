@@ -54,7 +54,16 @@ func _draw() -> void:
 	# so the HUD never overlaps a playable actor. Paint that strip as map too;
 	# otherwise the engine clear colour shows through at the top of a run.
 	var outer := arena.grow_individual(70.0, 460.0, 70.0, 70.0)
-	draw_rect(outer, Color("02040b"))
+	# The camera can look into the protected strip above the arena. It is part of
+	# the environment, not a black void between HUD and gameplay.
+	draw_rect(outer, base.darkened(0.30))
+	for band_index in range(6):
+		var band_y: float = arena.position.y - 410.0 + band_index * 78.0
+		var wobble: float = sin(phase * 0.45 + band_index * 1.7) * 12.0
+		draw_line(Vector2(outer.position.x + 30.0, band_y + wobble), Vector2(outer.end.x - 30.0, band_y - wobble), Color(accent, 0.055), 1.5)
+		for dot_index in range(4):
+			var dot_x: float = outer.position.x + 120.0 + dot_index * (outer.size.x - 240.0) / 3.0 + sin(phase + band_index * 2.0 + dot_index) * 18.0
+			draw_circle(Vector2(dot_x, band_y + wobble * 0.4), 2.0, Color(accent, 0.16))
 	draw_rect(arena, base.darkened(0.36))
 	draw_circle(arena.get_center(), maxf(arena.size.x, arena.size.y) * 0.42, Color(base.lightened(0.03), 0.28))
 	draw_circle(arena.get_center() + Vector2(120, -240), maxf(arena.size.x, arena.size.y) * 0.26, Color(accent, 0.035))

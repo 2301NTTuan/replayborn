@@ -1,4 +1,5 @@
 extends Control
+const DISPLAY_FONT = preload("res://assets/fonts/CascadiaCode.ttf")
 
 var map_data: Resource
 var selected: bool = false
@@ -16,8 +17,8 @@ func _draw() -> void:
     draw_rect(Rect2(0, 0, width, 190), Color(0.02, 0.04, 0.08, 0.42))
     draw_rect(Rect2(0, 0, width, 190), frame, false, 3)
     draw_rect(Rect2(0, 0, 9, 190), map_data.accent)
-    draw_string(ThemeDB.fallback_font, Vector2(30, 45), map_data.title_vi + " / " + map_data.title_en, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color("edf6ff"))
-    draw_string(ThemeDB.fallback_font, Vector2(30, 82), map_data.subtitle_vi, HORIZONTAL_ALIGNMENT_LEFT, -1, 21, map_data.accent)
-    draw_string(ThemeDB.fallback_font, Vector2(30, 160), "5 LEVELS  ·  5 BOSSES", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("d0ddec"))
+    draw_string(DISPLAY_FONT, Vector2(30, 45), map_data.title_vi + " / " + map_data.title_en, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color("edf6ff"))
+    draw_string(DISPLAY_FONT, Vector2(30, 82), map_data.subtitle_vi, HORIZONTAL_ALIGNMENT_LEFT, -1, 21, map_data.accent)
+    draw_string(DISPLAY_FONT, Vector2(30, 160), "5 LEVELS  ·  5 BOSSES", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("d0ddec"))
     if selected:
-        draw_string(ThemeDB.fallback_font, Vector2(width - 210, 160), "ĐANG CHỌN", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, map_data.accent)
+        draw_string(DISPLAY_FONT, Vector2(width - 210, 160), "ĐANG CHỌN", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, map_data.accent)

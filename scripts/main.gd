@@ -8,14 +8,16 @@ const Enemy = preload("res://scripts/enemy.gd")
 const Echo = preload("res://scripts/echo.gd")
 const XPOrb = preload("res://scripts/xp_orb.gd")
 const GoldOrb = preload("res://scripts/gold_orb.gd")
+const FieldPickup = preload("res://scripts/field_pickup.gd")
 const ArtBridge = preload("res://scripts/visuals/art_bridge.gd")
 const SoundBank = preload("res://scripts/sound_bank.gd")
 const ARENA: Rect2 = Rect2(-220, 120, 1520, 1980)
 # This protects the whole player silhouette (marker, head and weapon), rather
 # than only the collision center, when the camera reaches the north boundary.
-const TOP_UI_SAFE_SPACE: int = 380
+const TOP_UI_SAFE_SPACE: int = 270
 const MAX_XP_ORBS: int = 90
 const MAX_GOLD_ORBS: int = 48
+const MAX_FIELD_PICKUPS: int = 20
 const DRAW_EVERY_TICKS: int = 2
 enum State { PLAYING, PAUSED, UPGRADE, ENDED, TUTORIAL }
 var state: State = State.PLAYING
@@ -56,6 +58,7 @@ var boss_killed: bool = false
 var test_mode: bool = false
 var levelup_pending: bool = false
 var levelup_delay: float = 0.0
+var field_pickups: Array = []
 var game_camera: Camera2D
 
 func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
@@ -111,6 +114,21 @@ func draw_drone_bolt(center: Vector2, direction: Vector2, side: Vector2, phase: 
 	]), Color("fff1b0"))
 	draw_line(center - direction * 15.0, center + direction * 17.0, Color("ffffff", 0.86), 2.2)
 
+func draw_attack_drone(center: Vector2, direction: Vector2, side: Vector2, level: int, phase: float, simplified: bool) -> void:
+	var glow_alpha: float = 0.20 if simplified else 0.36
+	draw_glow_disc(center, 20.0 + level, Color(1.0, 0.78, 0.18, glow_alpha), 2 if simplified else 4)
+	draw_circle(center + Vector2(0, 7), 10.0, Color(0.0, 0.0, 0.0, 0.30))
+	var wing: float = 9.0 + sin(phase * 11.0) * 2.0
+	draw_colored_polygon(PackedVector2Array([
+		center + direction * 14.0,
+		center + side * wing - direction * 3.0,
+		center - direction * 11.0,
+		center - side * wing - direction * 3.0
+	]), Color("5d4521"))
+	draw_line(center - side * (wing + 5.0), center + side * (wing + 5.0), Color("ffd166", 0.72), 2.0)
+	draw_circle(center + direction * 3.0, 4.5, Color("fff7cb"))
+	draw_line(center - direction * 14.0, center - direction * 27.0, Color(1.0, 0.64, 0.12, 0.42), 3.0)
+
 func visual_load_high() -> bool:
 	return reduced_effects or enemies.size() > 44 or combat.friendly.size() > 170 or combat.effects.size() > 44
 
@@ -127,6 +145,7 @@ func _ready() -> void:
 	combat = Combat.new(self)
 	director = Director.new(self)
 	player.arena = ARENA
+	player.game = self
 	setup_camera()
 	player.configure_character(0)
 	player.configure_equipment(profile.data.equipment)
@@ -241,6 +260,13 @@ func _physics_process(delta: float) -> void:
 				hud.show_pickup(gold.value, true)
 			gold.queue_free()
 			gold_orbs.remove_at(index)
+	for index in range(field_pickups.size() - 1, -1, -1):
+		var pickup: Node2D = field_pickups[index]
+		if pickup.advance(delta):
+			if pickup.collected:
+				collect_field_pickup(pickup.kind)
+			pickup.queue_free()
+			field_pickups.remove_at(index)
 	for index in range(echoes.size() - 1, -1, -1):
 		var echo = echoes[index]
 		if echo.dead or echo.advance():
@@ -249,7 +275,9 @@ func _physics_process(delta: float) -> void:
 		else:
 			art.update_echo(echo)
 	var fired: Array = combat.fire(nearest_enemy(), delta)
-	if recorder.record(player.position, fired):
+	# Only record a new 15-second Echo after the current one has died. While an
+	# Echo is alive its tape loops and the Replay counter stays paused.
+	if echoes.is_empty() and recorder.record(player.position, fired):
 		create_echo()
 		recorder.begin(player.position)
 	combat.advance(delta)
@@ -329,6 +357,7 @@ func kill_enemy(enemy: Node2D) -> void:
 	var xp_value: int = int(base_xp) + enemy.elite * 5 + (15 if enemy_id.begins_with("boss_") else 0)
 	spawn_xp_orb(enemy.position, xp_value, xp_tier)
 	spawn_gold_orb(enemy.position, 25 if enemy_id.begins_with("boss_") else 2 + enemy.elite * 2)
+	roll_field_drop(enemy.position, enemy_id.begins_with("boss_"))
 	health = minf(max_health, health + stats.siphon) if health > 0 else 0
 	if String(enemy.spec.id).begins_with("boss_"):
 		director.complete_boss()
@@ -364,6 +393,44 @@ func spawn_gold_orb(at: Vector2, amount: int) -> void:
 	orb.setup(amount, player)
 	add_child(orb)
 	gold_orbs.append(orb)
+
+func roll_field_drop(at: Vector2, boss_drop: bool) -> void:
+	# Rare field drops break up the collection loop without flooding the arena.
+	var magnet_chance: float = 0.24 if boss_drop else 0.035
+	var heart_chance: float = 0.32 if boss_drop else (0.055 if health < max_health * 0.82 else 0.018)
+	if randf() < magnet_chance:
+		spawn_field_pickup(at, "magnet")
+	elif randf() < heart_chance:
+		spawn_field_pickup(at, "heart")
+
+func spawn_field_pickup(at: Vector2, kind: String) -> void:
+	if field_pickups.size() >= MAX_FIELD_PICKUPS:
+		field_pickups[0].queue_free()
+		field_pickups.remove_at(0)
+	var pickup := FieldPickup.new()
+	pickup.position = at + Vector2(randf_range(-18.0, 18.0), randf_range(-18.0, 18.0))
+	pickup.setup(kind, player)
+	add_child(pickup)
+	field_pickups.append(pickup)
+
+func collect_field_pickup(kind: String) -> void:
+	if kind == "magnet":
+		for orb in xp_orbs:
+			if is_instance_valid(orb) and orb.position.distance_to(player.position) <= 480.0:
+				orb.magnetize()
+		for gold in gold_orbs:
+			if is_instance_valid(gold) and gold.position.distance_to(player.position) <= 480.0:
+				gold.magnetize()
+		combat.add_effect({"position": player.position, "life": 0.42, "magnet_pickup": true, "radius": 480.0})
+	else:
+		health = minf(max_health, health + maxf(16.0, max_health * 0.22))
+		combat.add_effect({"position": player.position, "life": 0.34, "heart_pickup": true})
+
+func enemy_durability_multiplier() -> float:
+	var weapon_levels: int = 0
+	for level in secondary_weapons.values():
+		weapon_levels += int(level)
+	return 1.30 + secondary_weapons.size() * 0.16 + weapon_levels * 0.07
 
 func gain_xp(amount: int) -> void:
 	run_xp += maxi(1, amount)
@@ -528,12 +595,20 @@ func _draw() -> void:
 			draw_line(effect.position, effect.end, Color("d7fff8", beam_alpha), 3.5)
 			draw_energy_flare(effect.position, 26.0, Color(0.33, 0.92, 0.84, beam_alpha * 0.85), 8, run_time * 8.0)
 			draw_energy_flare(effect.end, 36.0 + (1.0 - beam_alpha) * 18.0, Color(0.33, 0.92, 0.84, beam_alpha), 10, -run_time * 7.0)
-		elif bool(dict_value(effect, "drone_fire", false)):
-			var fire_alpha: float = clampf(effect.life / 0.14, 0.0, 1.0)
-			draw_line(effect.position, effect.end, Color(1.0, 0.72, 0.16, fire_alpha * 0.28), 14)
-			draw_line(effect.position, effect.end, Color("fff1b0", fire_alpha), 3)
-			draw_energy_flare(effect.position, 18.0, Color(1.0, 0.82, 0.35, fire_alpha * 0.75), 6, run_time * 12.0)
-			draw_arc(effect.end, 22.0, run_time * 9.0, run_time * 9.0 + PI * 1.4, 20, Color("ffd166", fire_alpha), 2.5)
+		elif bool(dict_value(effect, "drone_burst", false)):
+			var burst_alpha: float = clampf(effect.life / 0.32, 0.0, 1.0)
+			var burst_radius: float = float(effect.radius) * (1.0 - burst_alpha * 0.25)
+			draw_glow_disc(effect.position, burst_radius * 0.82, Color(1.0, 0.48, 0.12, burst_alpha * 0.34), 5)
+			draw_arc(effect.position, burst_radius, run_time * 8.0, run_time * 8.0 + TAU * 0.84, 30, Color("ffe49a", burst_alpha), 4.0)
+			draw_energy_flare(effect.position, burst_radius * 0.56, Color(1.0, 0.76, 0.25, burst_alpha), 8, run_time * 10.0)
+		elif bool(dict_value(effect, "drone_launch", false)):
+			var launch_alpha: float = clampf(effect.life / 0.12, 0.0, 1.0)
+			draw_energy_flare(effect.position, 18.0, Color(1.0, 0.82, 0.35, launch_alpha), 6, run_time * 12.0)
+		elif bool(dict_value(effect, "magnet_pickup", false)):
+			var magnet_alpha: float = clampf(effect.life / 0.42, 0.0, 1.0)
+			draw_arc(effect.position, float(effect.radius) * (1.0 - magnet_alpha * 0.35), 0.0, TAU, 44, Color("76e9ff", magnet_alpha * 0.54), 3.0)
+		elif bool(dict_value(effect, "heart_pickup", false)):
+			draw_energy_flare(effect.position, 42.0, Color(1.0, 0.38, 0.54, clampf(effect.life / 0.34, 0.0, 1.0)), 7, run_time * 6.0)
 		else:
 			var hit_alpha: float = clampf(effect.life / 0.18, 0.0, 1.0)
 			draw_energy_flare(effect.position, 16.0 + (0.18 - effect.life) * 110, Color(1.0, 0.85, 0.6, hit_alpha), 7, run_time * 9.0)
@@ -561,11 +636,7 @@ func draw_secondary_vfx() -> void:
 			else:
 				draw_blade_projectile(bullet.position, direction, side, now * 16.0 + bullet.position.length() * 0.01)
 		elif secondary_id == "drone":
-			if high_load:
-				draw_circle(bullet.position, 7.0, Color("ffd166", 0.88))
-				draw_line(bullet.position - direction * 14.0, bullet.position + direction * 12.0, Color("fff1b0", 0.78), 2.0)
-			else:
-				draw_drone_bolt(bullet.position, direction, side, now * 13.0 + bullet.position.x * 0.02)
+			draw_attack_drone(bullet.position, direction, side, int(dict_value(bullet, "drone_level", 1)), now + bullet.position.x * 0.002, high_load)
 		projectile_drawn += 1
 	# Orbit blades are persistent animated objects, not just a damage ring.
 	var orbit_level: int = int(dict_value(secondary_weapons, "orbit", 0))

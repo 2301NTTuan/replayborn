@@ -1,4 +1,5 @@
 extends Node2D
+const DISPLAY_FONT = preload("res://assets/fonts/CascadiaCode.ttf")
 
 var tape: Dictionary = {}
 var tick: int = 0
@@ -35,7 +36,6 @@ func advance() -> bool:
 	age += 1.0 / 60.0
 	hurt_time = maxf(0.0, hurt_time - 1.0 / 60.0)
 	spawn_protection = maxf(0.0, spawn_protection - 1.0 / 60.0)
-	var expired: bool = age >= 15.0
 	var next_position: Vector2 = tape.positions[tick + 1]
 	motion = next_position - position
 	position = next_position
@@ -50,7 +50,9 @@ func advance() -> bool:
 		tick = 0
 		shot_index = 0
 	queue_redraw()
-	return expired
+	# A live Echo loops its recorded tape. The next recording is held until this
+	# Echo is destroyed, so a new clone never replaces one that is still fighting.
+	return false
 
 func take_damage(amount: int) -> void:
 	if dead or spawn_protection > 0.0:
@@ -73,10 +75,10 @@ func _draw() -> void:
 		draw_arc(Vector2.ZERO, 46.0 + sin(age * 12.0) * 3.0, 0, TAU, 32, Color("d7fbff", 0.82), 3)
 	if has_node("ArtVisual"):
 		draw_arc(Vector2.ZERO, 32, 0, TAU, 24, tint, 3)
-		draw_string(ThemeDB.fallback_font, Vector2(-7, 7), str(number), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("b2c6ff"))
+		draw_string(DISPLAY_FONT, Vector2(-7, 7), str(number), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("b2c6ff"))
 		return
 	draw_circle(Vector2.ZERO, 25, Color(tint, 0.16))
 	draw_arc(Vector2.ZERO, 28, 0, TAU, 24, tint, 3)
 	draw_circle(Vector2(0, -8), 10, Color(tint, 0.7))
 	draw_line(Vector2(-12, 8), Vector2(12, 8), tint, 4)
-	draw_string(ThemeDB.fallback_font, Vector2(-7, 7), str(number), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("b2c6ff"))
+	draw_string(DISPLAY_FONT, Vector2(-7, 7), str(number), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("b2c6ff"))

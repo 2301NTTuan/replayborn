@@ -40,6 +40,24 @@ func hud_card(rect: Rect2, border: Color = Color("315976")) -> Panel:
 	root_control.add_child(panel)
 	return panel
 
+func compact_pause_button(parent: Control) -> Button:
+	var button := Button.new()
+	button.text = "Ⅱ  " + t("pause")
+	button.position = Vector2(796, 8)
+	button.size = Vector2(182, 56)
+	button.custom_minimum_size = Vector2(182, 56)
+	button.add_theme_font_size_override("font_size", 17)
+	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var fill := Color("102238")
+		if state == "hover": fill = Color("17324d")
+		elif state == "pressed": fill = Color("1b4d5a")
+		var style := UI.box(fill, 7, Color("40627d"), 1)
+		style.set_content_margin_all(0)
+		button.add_theme_stylebox_override(state, style)
+	button.pressed.connect(game.toggle_pause)
+	parent.add_child(button)
+	return button
+
 func bind_game(owner_game: Node) -> void:
 	game = owner_game
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -51,10 +69,15 @@ func bind_game(owner_game: Node) -> void:
 	add_child(root_control)
 	# The HUD intentionally has no enclosing box. It reads as a light tactical
 	# overlay instead of a heavy window sitting over the game world.
-	hud_card(Rect2(36, 20, 1008, 54), Color("315c78"))
-	hud_card(Rect2(36, 86, 1008, 34), Color("6f4052"))
-	hud_card(Rect2(36, 132, 492, 34), Color("514375"))
-	hud_card(Rect2(552, 132, 492, 34), Color("35606b"))
+	var run_panel := hud_card(Rect2(36, 16, 1008, 72), Color("315c78"))
+	run_panel.clip_contents = true
+	# These controls are deliberately parented to Run Status. Their local
+	# coordinates cannot escape that panel when the HUD is resized or retuned.
+	var replay_panel := Panel.new()
+	replay_panel.position = Vector2(692, 8)
+	replay_panel.size = Vector2(86, 56)
+	replay_panel.add_theme_stylebox_override("panel", UI.box(Color("181126", 0.96), 8, Color("70528f"), 1))
+	run_panel.add_child(replay_panel)
 	var run_caption := UI.label(root_control, "RUN STATUS", 16)
 	run_caption.position = Vector2(58, 27)
 	run_caption.size = Vector2(220, 18)
@@ -78,74 +101,20 @@ func bind_game(owner_game: Node) -> void:
 	stats_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	stats_label.clip_text = true
 	stats_label.add_theme_color_override("font_color", Color("c0d2df"))
-	var vital_caption := UI.label(root_control, "HP", 14)
-	vital_caption.position = Vector2(62, 93)
-	vital_caption.size = Vector2(54, 20)
-	vital_caption.add_theme_font_size_override("font_size", 14)
-	vital_caption.add_theme_color_override("font_color", Color("ffe2e8"))
-	health_label = UI.label(root_control, "", 21)
-	health_label.position = Vector2(836, 93)
-	health_label.size = Vector2(184, 20)
-	health_label.add_theme_font_size_override("font_size", 15)
-	health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	health_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	health_label.clip_text = true
-	health_label.add_theme_color_override("font_color", Color("effbff"))
-	health_label.add_theme_color_override("font_color", Color("ff91a5"))
-	health_bar = ProgressBar.new()
-	health_bar.position = Vector2(52, 91)
-	health_bar.size = Vector2(976, 24)
-	health_bar.show_percentage = false
-	health_bar.add_theme_stylebox_override("background", UI.box(Color("210f22"), 5, Color("713348"), 1))
-	health_bar.add_theme_stylebox_override("fill", UI.box(Color("ff637d"), 5))
-	root_control.add_child(health_bar)
-	var memory_caption := UI.label(root_control, "REPLAY", 14)
-	memory_caption.position = Vector2(62, 139)
-	memory_caption.size = Vector2(86, 18)
+	var memory_caption := UI.label(run_panel, "REPLAY", 14, true)
+	memory_caption.position = Vector2(702, 13)
+	memory_caption.size = Vector2(66, 16)
 	memory_caption.add_theme_font_size_override("font_size", 13)
 	memory_caption.add_theme_color_override("font_color", Color("e4dbff"))
-	echo_label = UI.label(root_control, "", 22)
-	echo_label.position = Vector2(154, 139)
-	echo_label.size = Vector2(342, 18)
-	echo_label.add_theme_font_size_override("font_size", 13)
+	echo_label = UI.label(run_panel, "", 22)
+	echo_label.position = Vector2(702, 31)
+	echo_label.size = Vector2(66, 26)
+	echo_label.add_theme_font_size_override("font_size", 24)
+	echo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	echo_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	echo_label.clip_text = true
 	echo_label.add_theme_color_override("font_color", Color("b78cff"))
-	xp_label = UI.label(root_control, "", 19)
-	xp_label.position = Vector2(574, 139)
-	xp_label.size = Vector2(436, 18)
-	xp_label.add_theme_font_size_override("font_size", 13)
-	xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	xp_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	xp_label.clip_text = true
-	xp_label.add_theme_color_override("font_color", Color("ffd26a"))
-	progress = ProgressBar.new()
-	progress.position = Vector2(50, 137)
-	progress.size = Vector2(456, 24)
-	progress.max_value = 900
-	progress.show_percentage = false
-	progress.add_theme_stylebox_override("background", UI.box(Color("15142b"), 7, Color("443b72"), 1))
-	progress.add_theme_stylebox_override("fill", UI.box(Color("b78cff"), 7))
-	root_control.add_child(progress)
-	xp_progress = ProgressBar.new()
-	xp_progress.position = Vector2(566, 137)
-	xp_progress.size = Vector2(472, 24)
-	xp_progress.show_percentage = false
-	root_control.add_child(xp_progress)
-	root_control.move_child(vital_caption, root_control.get_child_count() - 1)
-	root_control.move_child(health_label, root_control.get_child_count() - 1)
-	root_control.move_child(memory_caption, root_control.get_child_count() - 1)
-	root_control.move_child(echo_label, root_control.get_child_count() - 1)
-	root_control.move_child(xp_label, root_control.get_child_count() - 1)
-	pause_button = UI.button(root_control, t("pause"), game.toggle_pause)
-	pause_button.position = Vector2(830, 26)
-	pause_button.size = Vector2(194, 42)
-	pause_button.add_theme_font_size_override("font_size", 18)
-	pause_button.text = "Ⅱ  " + t("pause")
-	var field_caption := UI.label(root_control, "VOID GARDEN  //  LIVE", 13, true)
-	field_caption.position = Vector2(644, 38)
-	field_caption.size = Vector2(168, 20)
-	field_caption.add_theme_color_override("font_color", Color("7894ad"))
+	pause_button = compact_pause_button(run_panel)
 	joystick = Joystick.new()
 	joystick.name = "Joystick"
 	# The joystick is an invisible full-playfield touch layer with no visual.
@@ -223,14 +192,8 @@ func refresh() -> void:
 	clock_label.text = "%02d:%02d" % [int(game.run_time) / 60, int(game.run_time) % 60]
 	stats_label.text = "LV.%02d  •  K.O. %03d" % [game.director.stage + 1, game.kills]
 	gold_label.text = "◆ %d" % game.profile.data.gold
-	health_label.text = "%d / %d" % [ceili(game.health), int(game.max_health)]
-	health_bar.max_value = game.max_health
-	health_bar.value = game.health
-	echo_label.text = "REC  %04.1fs / 15s   •   ECHO %d/1" % [game.recorder.tick / 60.0, game.echoes.size()]
-	xp_label.text = "LV.%02d  •  EXP %d/%d" % [game.run_level, game.run_xp, game.xp_to_next]
-	progress.value = game.recorder.tick
-	xp_progress.max_value = game.xp_to_next
-	xp_progress.value = game.run_xp
+	var echo_alive: bool = not game.echoes.is_empty() and is_instance_valid(game.echoes[0]) and not game.echoes[0].dead
+	echo_label.text = "HOLD" if echo_alive else "%02ds" % maxi(0, ceili(15.0 - game.recorder.tick / 60.0))
 	if is_instance_valid(game.boss) and not game.boss.dead:
 		var boss_name: String = game.boss.spec.title_en if game.profile.data.language == "en" else game.boss.spec.title_vi
 		boss_label.text = "BOSS  /  %s   %d / %d HP" % [boss_name, ceili(game.boss.health), ceili(game.boss.max_health)]

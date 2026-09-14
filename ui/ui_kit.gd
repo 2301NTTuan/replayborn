@@ -1,5 +1,6 @@
 extends RefCounted
 const Words = preload("res://scripts/core/words.gd")
+const DISPLAY_FONT = preload("res://assets/fonts/CascadiaCode.ttf")
 
 const INK := Color("edf6ff")
 const MUTED := Color("8a9caf")
@@ -22,6 +23,7 @@ static func box(color: Color, radius: int = 10, border: Color = Color.TRANSPAREN
 
 static func theme() -> Theme:
 	var result := Theme.new()
+	result.default_font = DISPLAY_FONT
 	result.default_font_size = 27
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		var color := SURFACE_ALT

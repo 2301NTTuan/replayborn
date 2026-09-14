@@ -1,4 +1,5 @@
 extends Control
+const DISPLAY_FONT = preload("res://assets/fonts/CascadiaCode.ttf")
 
 var character_index: int = 0
 var selected: bool = false
@@ -19,6 +20,6 @@ func _draw() -> void:
     var tex: Texture2D = load("res://assets/replayborn/characters/%s/portrait.png" % IDS[character_index])
     draw_texture_rect(tex, Rect2(24, 8, 176, 176), false)
     var gender := "NỮ / FEMALE" if character_index % 2 else "NAM / MALE"
-    draw_string(ThemeDB.fallback_font, Vector2(215, 72), ["VANGUARD", "RUNNER", "TECH", "WARDEN", "DUELIST"][character_index / 2], HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color("edf6ff"))
-    draw_string(ThemeDB.fallback_font, Vector2(215, 116), gender, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, accent)
-    draw_string(ThemeDB.fallback_font, Vector2(215, 154), "ĐANG CHỌN / SELECTED" if selected else "Chạm để chọn / Tap to select", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, accent if selected else Color("a9bfd4"))
+    draw_string(DISPLAY_FONT, Vector2(215, 72), ["VANGUARD", "RUNNER", "TECH", "WARDEN", "DUELIST"][character_index / 2], HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color("edf6ff"))
+    draw_string(DISPLAY_FONT, Vector2(215, 116), gender, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, accent)
+    draw_string(DISPLAY_FONT, Vector2(215, 154), "ĐANG CHỌN / SELECTED" if selected else "Chạm để chọn / Tap to select", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, accent if selected else Color("a9bfd4"))

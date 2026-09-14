@@ -135,6 +135,15 @@ func advance(delta: float) -> void:
 				bullet.velocity = bullet.velocity.lerp(desired, minf(1.0, delta * 7.0))
 		bullet.position += bullet.velocity * delta
 		bullet.life -= delta
+		if bool(_dict_value(bullet, "drone_missile", false)):
+			var missile_target: Variant = _dict_value(bullet, "target", null)
+			var has_impact: bool = bullet.life <= 0.0
+			if is_instance_valid(missile_target) and missile_target is Node2D and not missile_target.dead:
+				has_impact = has_impact or bullet.position.distance_to(missile_target.position) <= missile_target.radius + 16.0
+			if has_impact:
+				_detonate_drone(bullet)
+				friendly.remove_at(index)
+				continue
 		var contacts: Array = []
 		for enemy in candidates(previous, bullet.position):
 			if enemy.dead or enemy.serial in bullet.hit or enemy.spawn_protection > 0:
@@ -153,10 +162,10 @@ func advance(delta: float) -> void:
 				add_effect({"position": enemy.position, "life": 0.18})
 			if enemy.health <= 0:
 				game.kill_enemy(enemy)
-			if bullet.pierce <= 0:
+			if int(_dict_value(bullet, "pierce", 0)) <= 0:
 				bullet.life = 0
 				break
-			bullet.pierce -= 1
+			bullet.pierce = int(_dict_value(bullet, "pierce", 0)) - 1
 		if bullet.life <= 0 or not game.ARENA.has_point(bullet.position):
 			friendly.remove_at(index)
 	for index in range(hostile.size() - 1, -1, -1):
@@ -218,6 +227,20 @@ func advance(delta: float) -> void:
 		if effects[index].life <= 0:
 			effects.remove_at(index)
 
+func _detonate_drone(missile: Dictionary) -> void:
+	var radius: float = float(_dict_value(missile, "impact_radius", 58.0))
+	var damage: float = float(_dict_value(missile, "damage", 8.0))
+	for enemy in game.enemies:
+		if enemy.dead or enemy.spawn_protection > 0.0:
+			continue
+		if enemy.position.distance_to(missile.position) <= radius + enemy.radius:
+			enemy.health -= damage
+			enemy.flash = 0.12
+			if enemy.health <= 0.0:
+				game.kill_enemy(enemy)
+	add_effect({"position": missile.position, "life": 0.32, "drone_burst": true, "radius": radius})
+	game.sound.play("hit")
+
 func advance_secondary(delta: float) -> void:
 	for weapon_id in game.secondary_weapons.keys():
 		var level: int = int(game.secondary_weapons[weapon_id])
@@ -244,11 +267,15 @@ func advance_secondary(delta: float) -> void:
 				game.sound.play("secondary_orbit")
 				secondary_cooldowns[weapon_id] = maxf(0.45, 1.0 - level * 0.08)
 			"drone":
-				var drone_angle: float = game.run_time * 1.35
-				var drone_pos: Vector2 = game.player.position + Vector2.from_angle(drone_angle) * (54.0 + level * 3.0) + Vector2(0, -18)
-				var drone_velocity: Vector2 = drone_pos.direction_to(target.position) * 760.0
-				add_shot({"position": drone_pos, "velocity": drone_velocity, "damage": 5.0 + level * 3.0, "pierce": 0, "life": 2.0, "echo_multiplier": 1.0, "ghost": false, "secondary_id": weapon_id, "homing": true, "target": target})
-				add_effect({"position": drone_pos, "end": target.position, "life": 0.14, "drone_fire": true})
+				var drone_count: int = 1 + int((level - 1) / 2)
+				var drone_targets := _drone_targets(drone_count)
+				for drone_index in range(drone_targets.size()):
+					var drone_target: Node2D = drone_targets[drone_index]
+					var drone_angle: float = game.run_time * 1.35 + TAU * drone_index / drone_count
+					var drone_pos: Vector2 = game.player.position + Vector2.from_angle(drone_angle) * (54.0 + level * 3.0) + Vector2(0, -18)
+					var drone_velocity: Vector2 = drone_pos.direction_to(drone_target.position) * (590.0 + level * 45.0)
+					add_shot({"position": drone_pos, "velocity": drone_velocity, "damage": 7.0 + level * 3.5, "life": 1.8, "echo_multiplier": 1.0, "ghost": false, "secondary_id": weapon_id, "drone_missile": true, "homing": true, "target": drone_target, "impact_radius": 46.0 + level * 7.0, "drone_level": level})
+					add_effect({"position": drone_pos, "end": drone_target.position, "life": 0.12, "drone_launch": true})
 				game.sound.play("secondary_drone")
 				secondary_cooldowns[weapon_id] = maxf(0.35, 1.25 - level * 0.12)
 			"mine":
@@ -261,3 +288,15 @@ func advance_secondary(delta: float) -> void:
 				if target.health <= 0: game.kill_enemy(target)
 				game.sound.play("secondary_beam")
 				secondary_cooldowns[weapon_id] = maxf(1.0, 2.7 - level * 0.22)
+
+func _drone_targets(count: int) -> Array:
+	var available: Array = []
+	for enemy in game.enemies:
+		if not enemy.dead and enemy.spawn_protection <= 0.0:
+			available.append(enemy)
+	available.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return a.position.distance_squared_to(game.player.position) < b.position.distance_squared_to(game.player.position))
+	var result: Array = []
+	for index in range(mini(count, available.size())):
+		result.append(available[index])
+	return result

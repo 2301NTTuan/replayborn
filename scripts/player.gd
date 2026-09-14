@@ -1,6 +1,8 @@
 extends CharacterBody2D
+const DISPLAY_FONT = preload("res://assets/fonts/CascadiaCode.ttf")
 
 var arena: Rect2 = Rect2(50, 310, 980, 1510)
+var game: Node
 var active: bool = true
 var touch_direction: Vector2 = Vector2.ZERO
 var speed: float = 420.0
@@ -66,12 +68,13 @@ func _draw() -> void:
 		draw_line(muzzle, muzzle + facing * 20.0, Color("fff2b0", 0.75), 3)
 	if level_up_time > 0.0:
 		var alpha := clampf(level_up_time / 0.35, 0.0, 1.0)
-		draw_string(ThemeDB.fallback_font, Vector2(-58, -112 - (1.0 - alpha) * 12.0), "LEVEL UP", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1.0, 0.82, 0.32, alpha))
+		draw_string(DISPLAY_FONT, Vector2(-58, -112 - (1.0 - alpha) * 12.0), "LEVEL UP", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1.0, 0.82, 0.32, alpha))
 		draw_arc(Vector2.ZERO, 52.0 + (1.0 - alpha) * 18.0, 0, TAU, 32, Color(1.0, 0.82, 0.32, alpha * 0.7), 3)
 	var marker_y := -88.0 + sin(pulse * 4.0) * 3.0
 	draw_circle(Vector2(0, marker_y + 5), 10, Color(0.20, 0.95, 0.84, 0.10))
 	draw_colored_polygon(PackedVector2Array([Vector2(0, marker_y - 7), Vector2(8, marker_y), Vector2(0, marker_y + 7), Vector2(-8, marker_y)]), Color("d8fff8"))
 	draw_arc(Vector2(0, marker_y), 12, PI * 0.1, PI * 0.9, 12, Color("55ebd2"), 2)
+	draw_overhead_meters()
 	if has_node("ArtVisual"):
 		if hurt_time > 0:
 			draw_arc(Vector2.ZERO, 42, 0, TAU, 32, Color("ff647b"), 5)
@@ -93,6 +96,23 @@ func _draw() -> void:
 			draw_circle(Vector2.ZERO, 28, Color(1, 0.3, 0.4, clampf(hurt_time, 0, 0.7)))
 	if velocity.length_squared() > 0:
 		draw_line(Vector2.ZERO, velocity.normalized() * 42, Color("f4f7ff"), 4)
+
+func draw_overhead_meters() -> void:
+	if game == null or not is_instance_valid(game):
+		return
+	var health_ratio: float = clampf(float(game.health) / maxf(1.0, float(game.max_health)), 0.0, 1.0)
+	var exp_ratio: float = clampf(float(game.run_xp) / maxf(1.0, float(game.xp_to_next)), 0.0, 1.0)
+	var meter_width := 108.0
+	var left := -meter_width * 0.5
+	# Both combat resources travel with the player, so they cannot hide the hero
+	# or consume fixed screen space on a small phone.
+	draw_rect(Rect2(left - 2.0, -142.0, meter_width + 4.0, 12.0), Color("090d18", 0.88))
+	draw_rect(Rect2(left, -140.0, meter_width, 8.0), Color("351621"))
+	draw_rect(Rect2(left, -140.0, meter_width * health_ratio, 8.0), Color("ff5f7d"))
+	draw_rect(Rect2(left - 2.0, -126.0, meter_width + 4.0, 10.0), Color("090d18", 0.82))
+	draw_rect(Rect2(left, -124.0, meter_width, 6.0), Color("102a31"))
+	draw_rect(Rect2(left, -124.0, meter_width * exp_ratio, 6.0), Color("56e4d1"))
+	draw_string(DISPLAY_FONT, Vector2(left, -147.0), "HP %d/%d" % [ceili(game.health), ceili(game.max_health)], HORIZONTAL_ALIGNMENT_LEFT, meter_width, 13, Color("ffe6ec"))
 
 func register_shot() -> void:
 	shoot_flash = 0.12

@@ -1,5 +1,6 @@
 extends Control
 const UI = preload("res://ui/ui_kit.gd")
+const DISPLAY_FONT = preload("res://assets/fonts/CascadiaCode.ttf")
 const Catalog = preload("res://scripts/data/catalog.gd")
 const CharacterThumb = preload("res://ui/character_thumb.gd")
 const MapThumb = preload("res://ui/map_thumb.gd")
@@ -38,15 +39,15 @@ func _draw() -> void:
 	draw_line(Vector2(64, 688), Vector2(1016, 688), Color("72f6d4", 0.64), 3)
 	draw_rect(Rect2(42, 720, 996, 1140), Color("070d18", 0.88))
 	draw_rect(Rect2(42, 720, 996, 1140), Color("24384f", 0.9), false, 1)
-	draw_string(ThemeDB.fallback_font, Vector2(64, 156), "REPLAYBORN", HORIZONTAL_ALIGNMENT_LEFT, -1, 76, Color("edf6ff"))
-	draw_string(ThemeDB.fallback_font, Vector2(68, 205), "ECHO SURVIVAL  /  MOBILE BUILD", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("72f6d4"))
-	draw_string(ThemeDB.fallback_font, Vector2(68, 330), "VOID GARDEN", HORIZONTAL_ALIGNMENT_LEFT, -1, 48, Color("edf6ff"))
-	draw_string(ThemeDB.fallback_font, Vector2(70, 374), "5 LEVELS  •  5 BOSSES  •  OFFLINE", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("8fa7ba"))
+	draw_string(DISPLAY_FONT, Vector2(64, 156), "REPLAYBORN", HORIZONTAL_ALIGNMENT_LEFT, -1, 76, Color("edf6ff"))
+	draw_string(DISPLAY_FONT, Vector2(68, 205), "ECHO SURVIVAL  /  MOBILE BUILD", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("72f6d4"))
+	draw_string(DISPLAY_FONT, Vector2(68, 330), "VOID GARDEN", HORIZONTAL_ALIGNMENT_LEFT, -1, 48, Color("edf6ff"))
+	draw_string(DISPLAY_FONT, Vector2(70, 374), "5 LEVELS  •  5 BOSSES  •  OFFLINE", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("8fa7ba"))
 	draw_rect(Rect2(64, 470, 438, 112), Color("0c1624", 0.82))
 	draw_rect(Rect2(64, 470, 438, 112), Color("263c55"), false, 1)
 	draw_line(Vector2(86, 498), Vector2(194, 498), Color("f2c45b"), 3)
-	draw_string(ThemeDB.fallback_font, Vector2(86, 535), "ASTRIA", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, Color("edf6ff"))
-	draw_string(ThemeDB.fallback_font, Vector2(86, 565), "ECHO RUNNER  ·  READY", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("9cb2c6"))
+	draw_string(DISPLAY_FONT, Vector2(86, 535), "ASTRIA", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, Color("edf6ff"))
+	draw_string(DISPLAY_FONT, Vector2(86, 565), "ECHO RUNNER  ·  READY", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("9cb2c6"))
 	if subpage_active:
 		draw_rect(Rect2(0, 0, 1080, 1920), Color(0.012, 0.018, 0.032, 0.92))
 

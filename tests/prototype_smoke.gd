@@ -55,10 +55,10 @@ func run() -> void:
 	echo.advance()
 	check(game.combat.friendly.size() == 1, "first replay tick fires")
 	check(is_equal_approx(game.combat.friendly[0].damage, recorded_damage), "snapshot damage unaffected by later upgrade")
-	var echo_expired: bool = false
+	var echo_finished: bool = false
 	for tick in range(899):
-		echo_expired = echo.advance()
-	check(echo_expired and echo.tick == 0 and game.combat.friendly.size() == 2, "echo ends after one 15s replay")
+		echo_finished = echo.advance()
+	check(not echo_finished and echo.tick == 0 and game.combat.friendly.size() == 2, "echo loops after one 15s replay")
 	for index in range(5):
 		game.create_echo()
 	check(game.echoes.size() == 1, "single echo cap")

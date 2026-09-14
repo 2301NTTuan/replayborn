@@ -34,7 +34,10 @@ func setup(data: Resource, owner_game: Node, variant: int, difficulty: float) ->
 	game = owner_game
 	target = game.player
 	elite = variant
-	health = data.health * difficulty * (2.3 if elite > 0 else 1.0)
+	var durability: float = game.enemy_durability_multiplier()
+	if String(data.id).begins_with("boss_"):
+		durability *= 1.22
+	health = data.health * difficulty * durability * (2.3 if elite > 0 else 1.0)
 	max_health = health
 	radius = data.radius * (1.2 if elite > 0 else 1.0)
 	speed = data.speed * (1.3 if elite == 1 else 1.0)

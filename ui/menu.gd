@@ -9,13 +9,16 @@ var body: VBoxContainer
 var back_button: Button
 var subpage_active: bool = false
 
+func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
+	return source[key] if source.has(key) else fallback
+
 func _ready() -> void:
 	profile = get_node("/root/Profile")
 	theme = UI.theme()
-	body = UI.column(self, Rect2(56, 742, 968, 1128))
+	body = UI.column(self, Rect2(64, 760, 952, 1072))
 	back_button = UI.button(self, "←  " + t("back"), show_home, 82)
-	back_button.position = Vector2(54, 44)
-	back_button.size = Vector2(210, 70)
+	back_button.position = Vector2(54, 46)
+	back_button.size = Vector2(196, 62)
 	back_button.hide()
 	show_home()
 	RenderingServer.set_default_clear_color(Color("090f1d"))
@@ -24,53 +27,47 @@ func t(key: String) -> String:
 	return UI.text(key, profile)
 
 func _draw() -> void:
-	draw_rect(Rect2(0, 0, 1080, 1920), Color("060b16"))
-	draw_circle(Vector2(850, 240), 560, Color("113b50", 0.42))
-	draw_circle(Vector2(855, 250), 370, Color("176a6c", 0.19))
-	draw_circle(Vector2(90, 675), 280, Color("282456", 0.19))
-	for index in range(7):
-		draw_line(Vector2(0, 110 + index * 118), Vector2(1080, 0 + index * 118), Color("294b67", 0.13), 2)
-	draw_rect(Rect2(30, 690, 1020, 1190), Color("091526", 0.96))
-	draw_rect(Rect2(30, 690, 1020, 1190), Color("315976"), false, 2)
-	draw_line(Vector2(55, 716), Vector2(1025, 716), Color("55ebd2"), 3)
-	for index in range(4):
-		draw_arc(Vector2(814, 336), 104 + index * 49, -PI * 0.92, PI * 0.63, 64, Color(0.33, 0.92, 0.82, 0.62 - index * 0.12), 3)
-	draw_circle(Vector2(814, 336), 38, Color("55ebd2"))
-	draw_circle(Vector2(814, 336), 16, Color("d9fff7"))
-	draw_texture_rect_region(HEROINE_SHEET, Rect2(570, 170, 410, 545), Rect2(0, 0, HEROINE_SHEET.get_width() / 4, HEROINE_SHEET.get_height()), Color.WHITE)
-	draw_string(ThemeDB.fallback_font, Vector2(56, 168), "REPLAYBORN", HORIZONTAL_ALIGNMENT_LEFT, -1, 74, Color("effbff"))
-	draw_string(ThemeDB.fallback_font, Vector2(60, 212), "SURVIVE THE LOOP  /  COMMAND THE ECHOES", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("63e6d2"))
-	draw_string(ThemeDB.fallback_font, Vector2(60, 310), "CHAPTER 01", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("ffd26a"))
-	draw_string(ThemeDB.fallback_font, Vector2(60, 365), "TÀN TÍCH NEON", HORIZONTAL_ALIGNMENT_LEFT, -1, 42, Color("eaf4ff"))
-	draw_string(ThemeDB.fallback_font, Vector2(60, 402), "5 MỨC ĐỘ  •  5 BOSS  •  OFFLINE", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("92acc4"))
-	draw_rect(Rect2(60, 472, 430, 126), Color("10263c", 0.94))
-	draw_rect(Rect2(60, 472, 430, 126), Color("386986"), false, 2)
-	draw_string(ThemeDB.fallback_font, Vector2(84, 512), "ASTRIA", HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color("effbff"))
-	draw_string(ThemeDB.fallback_font, Vector2(84, 548), "ECHO RUNNER  ·  LV.01", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("9bbbcf"))
-	draw_string(ThemeDB.fallback_font, Vector2(84, 578), "WEAPON BONDED  ·  READY", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("55ebd2"))
+	draw_rect(Rect2(0, 0, 1080, 1920), Color("050812"))
+	draw_rect(Rect2(0, 0, 1080, 1920), Color("071827", 0.54))
+	for index in range(9):
+		var y := 170.0 + index * 165.0
+		draw_line(Vector2(0, y), Vector2(1080, y - 88.0), Color("16304a", 0.18), 2)
+	draw_circle(Vector2(820, 335), 430, Color("15334a", 0.46))
+	draw_circle(Vector2(822, 340), 260, Color("1a685f", 0.16))
+	draw_texture_rect_region(HEROINE_SHEET, Rect2(600, 164, 372, 494), Rect2(0, 0, HEROINE_SHEET.get_width() / 4, HEROINE_SHEET.get_height()), Color.WHITE)
+	draw_line(Vector2(64, 688), Vector2(1016, 688), Color("72f6d4", 0.64), 3)
+	draw_rect(Rect2(42, 720, 996, 1140), Color("070d18", 0.88))
+	draw_rect(Rect2(42, 720, 996, 1140), Color("24384f", 0.9), false, 1)
+	draw_string(ThemeDB.fallback_font, Vector2(64, 156), "REPLAYBORN", HORIZONTAL_ALIGNMENT_LEFT, -1, 76, Color("edf6ff"))
+	draw_string(ThemeDB.fallback_font, Vector2(68, 205), "ECHO SURVIVAL  /  MOBILE BUILD", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("72f6d4"))
+	draw_string(ThemeDB.fallback_font, Vector2(68, 330), "VOID GARDEN", HORIZONTAL_ALIGNMENT_LEFT, -1, 48, Color("edf6ff"))
+	draw_string(ThemeDB.fallback_font, Vector2(70, 374), "5 LEVELS  •  5 BOSSES  •  OFFLINE", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("8fa7ba"))
+	draw_rect(Rect2(64, 470, 438, 112), Color("0c1624", 0.82))
+	draw_rect(Rect2(64, 470, 438, 112), Color("263c55"), false, 1)
+	draw_line(Vector2(86, 498), Vector2(194, 498), Color("f2c45b"), 3)
+	draw_string(ThemeDB.fallback_font, Vector2(86, 535), "ASTRIA", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, Color("edf6ff"))
+	draw_string(ThemeDB.fallback_font, Vector2(86, 565), "ECHO RUNNER  ·  READY", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("9cb2c6"))
 	if subpage_active:
-		# Opaque enough to separate secondary screens from the home hero, while
-		# retaining a hint of the neon environment underneath.
-		draw_rect(Rect2(0, 0, 1080, 1920), Color(0.015, 0.035, 0.065, 0.90))
+		draw_rect(Rect2(0, 0, 1080, 1920), Color(0.012, 0.018, 0.032, 0.92))
 
 func show_home() -> void:
 	UI.clear(body)
 	subpage_active = false
 	queue_redraw()
 	back_button.hide()
-	UI.caption(body, "Trung tâm điều khiển", true)
-	var status := UI.card(body, Color("315976"))
-	UI.label(status, "HỒ SƠ CHIẾN DỊCH", 20, true)
-	var record_label := UI.label(status, t("records") % [profile.data.runs, profile.data.wins, profile.data.kills], 24, true)
+	UI.caption(body, "RUN DOCK", true)
+	var status := UI.card(body, Color("2a4058"))
+	UI.label(status, "HỒ SƠ", 18, true)
+	var record_label := UI.label(status, t("records") % [profile.data.runs, profile.data.wins, profile.data.kills], 22, true)
 	record_label.add_theme_color_override("font_color", Color("a9c2d8"))
 	if not profile.warning.is_empty():
 		UI.label(body, t(profile.warning), 24, true)
-	UI.primary_button(body, "▶  " + t("start"), func() -> void: launch(false), 112).grab_focus()
-	UI.button(body, "⬆  Nâng cấp Player", show_player_upgrades, 78)
-	UI.button(body, "⚙  " + t("settings"), show_settings, 78)
-	UI.button(body, "?  " + t("help"), show_help, 78)
-	UI.danger_button(body, t("quit"), func() -> void: get_tree().quit(), 72)
-	UI.label(body, "1.0.0-rc.1  ·  OFFLINE", 23, true)
+	UI.primary_button(body, "▶  BẮT ĐẦU RUN", func() -> void: launch(false), 98).grab_focus()
+	UI.button(body, "⬆  Nâng cấp Player", show_player_upgrades, 70)
+	UI.button(body, "⚙  " + t("settings"), show_settings, 70)
+	UI.button(body, "?  " + t("help"), show_help, 70)
+	UI.danger_button(body, t("quit"), func() -> void: get_tree().quit(), 64)
+	UI.label(body, "1.0.0-rc.1  ·  OFFLINE", 20, true)
 
 func show_player_upgrades() -> void:
 	UI.clear(body)
@@ -80,7 +77,7 @@ func show_player_upgrades() -> void:
 	UI.label(body, "Vàng hiện có: %d  ·  Mỗi cấp tăng hiệu quả trong mọi trận" % profile.data.gold, 23, true)
 	var labels := {"hp": "Máu tối đa  +15", "damage": "Damage  +5%", "armor": "Giáp  +1", "haste": "Tốc độ bắn  +5%"}
 	for stat in ["hp", "damage", "armor", "haste"]:
-		var level: int = int(profile.data.meta_upgrades.get(stat, 0))
+		var level: int = int(dict_value(profile.data.meta_upgrades, stat, 0))
 		var cost := 100 + level * 75
 		var card := UI.card(body, Color("315976"))
 		UI.label(card, "%s  ·  Cấp %d/20" % [labels[stat], level], 24, true)
@@ -119,13 +116,13 @@ func show_shop() -> void:
 
 func open_shop_chest(slot: String, rarity_index: int) -> void:
 	var result: Dictionary = profile.open_chest_with_priority(slot, rarity_index)
-	match result.get("status", ""):
+	match String(dict_value(result, "status", "")):
 		"free":
 			show_shop()
 		"gold":
 			show_shop()
 		"payment":
-			show_payment_popup(slot, rarity_index, int(result.get("cost", 0)))
+			show_payment_popup(slot, rarity_index, int(dict_value(result, "cost", 0)))
 		_:
 			show_shop()
 

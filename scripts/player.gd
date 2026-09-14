@@ -14,10 +14,14 @@ var skin: Color = Color("f2b58f")
 var hair: Color = Color("26344f")
 var pulse: float = 0.0
 var facing: Vector2 = Vector2.RIGHT
+var smoothed_direction: Vector2 = Vector2.ZERO
 var shoot_flash: float = 0.0
 var level_up_time: float = 0.0
 var equipment: Dictionary = {}
 var rarity_colors: Array[Color] = [Color("b8c3d1"), Color("65b7ff"), Color("c77dff"), Color("ff70c8"), Color("ffd166")]
+
+func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
+	return source[key] if source.has(key) else fallback
 
 func configure_character(index: int) -> void:
 	character_index = clampi(index, 0, 9)
@@ -41,9 +45,13 @@ func advance(delta: float) -> void:
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if touch_direction.length_squared() > direction.length_squared():
 		direction = touch_direction
-	velocity = direction * speed if active else Vector2.ZERO
-	if direction.length_squared() > 0.01:
-		facing = direction.normalized()
+	var smoothing := 18.0 if direction.length_squared() > 0.01 else 24.0
+	smoothed_direction = smoothed_direction.lerp(direction, clampf(delta * smoothing, 0.0, 1.0))
+	if smoothed_direction.length() < 0.025:
+		smoothed_direction = Vector2.ZERO
+	velocity = smoothed_direction * speed if active else Vector2.ZERO
+	if smoothed_direction.length_squared() > 0.01:
+		facing = smoothed_direction.normalized()
 	move_and_slide()
 	position = position.clamp(arena.position + Vector2.ONE * 25, arena.end - Vector2.ONE * 25)
 	queue_redraw()
@@ -108,12 +116,12 @@ func draw_humanoid(body: Vector2, torso: PackedVector2Array, head_radius: float)
 	draw_line(body + Vector2(-12, 29 + leg_offset), body + Vector2(-3, 29 + leg_offset), Color("e9f1fa"), 4)
 	draw_line(body + Vector2(12, 29 - leg_offset), body + Vector2(21, 29 - leg_offset), Color("e9f1fa"), 4)
 	draw_colored_polygon(torso, accent)
-	var armor: Dictionary = equipment.get("GIÁP", {})
-	var armor_level: int = int(armor.get("rarity", 0))
+	var armor: Dictionary = dict_value(equipment, "GIÁP", {})
+	var armor_level: int = int(dict_value(armor, "rarity", 0))
 	var armor_color: Color = rarity_colors[clampi(armor_level, 0, rarity_colors.size() - 1)]
 	draw_line(body + Vector2(-14, 8), body + Vector2(14, 8), armor_color, 4 + armor_level)
-	var boots: Dictionary = equipment.get("GIÀY", {})
-	var boot_color: Color = rarity_colors[clampi(int(boots.get("rarity", 0)), 0, rarity_colors.size() - 1)]
+	var boots: Dictionary = dict_value(equipment, "GIÀY", {})
+	var boot_color: Color = rarity_colors[clampi(int(dict_value(boots, "rarity", 0)), 0, rarity_colors.size() - 1)]
 	draw_line(body + Vector2(-12, 29 + leg_offset), body + Vector2(-3, 29 + leg_offset), boot_color, 4)
 	draw_line(body + Vector2(12, 29 - leg_offset), body + Vector2(21, 29 - leg_offset), boot_color, 4)
 	draw_polyline(torso + PackedVector2Array([torso[0]]), Color(accent.lightened(0.38)), 3)

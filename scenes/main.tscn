@@ -1,19 +1,20 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene format=3 uid="uid://cw43nbgfsvl2d"]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1"]
-[ext_resource type="Script" path="res://scripts/player.gd" id="2"]
+[ext_resource type="Script" uid="uid://d2hoj64stygxs" path="res://scripts/main.gd" id="1"]
+[ext_resource type="Script" uid="uid://dy3x2ggx3lj43" path="res://scripts/player.gd" id="2"]
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="3"]
+
 [sub_resource type="CircleShape2D" id="Shape"]
 radius = 25.0
 
-[node name="Replayborn" type="Node2D"]
+[node name="Replayborn" type="Node2D" unique_id=150428733]
 script = ExtResource("1")
 
-[node name="Player" type="CharacterBody2D" parent="."]
+[node name="Player" type="CharacterBody2D" parent="." unique_id=633934505]
 position = Vector2(540, 1050)
 script = ExtResource("2")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=423950464]
 shape = SubResource("Shape")
 
-[node name="HUD" parent="." instance=ExtResource("3")]
+[node name="HUD" parent="." unique_id=752629237 instance=ExtResource("3")]

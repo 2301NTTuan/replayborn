@@ -15,6 +15,9 @@ var anime_enemy_frames: Dictionary = {}
 func _init(owner_game: Node) -> void:
     game = owner_game
 
+func _dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
+    return source[key] if source.has(key) else fallback
+
 func setup() -> void:
     attach_player(game.player, int(game.profile.data.character))
     setup_map(String(game.map_data.id))
@@ -26,11 +29,9 @@ func draw_projectiles(canvas: Node2D) -> void:
         return
     var fsize := Vector2(28, 28)
     for bullet in game.combat.friendly:
+        if String(_dict_value(bullet, "secondary_id", "")) != "":
+            continue
         var mod := Color(0.58, 0.66, 1.0, 0.72) if bullet.ghost else Color.WHITE
-        if bullet.get("secondary_id", "") == "boomerang":
-            mod = Color("55ebd2")
-        elif bullet.get("secondary_id", "") == "drone":
-            mod = Color("ffd166")
         canvas.draw_texture_rect(friendly_projectile, Rect2(bullet.position - fsize * 0.5, fsize), false, mod)
     var hsize := Vector2(30, 30)
     for bullet in game.combat.hostile:
@@ -63,10 +64,10 @@ func _attach_equipment_overlays(player: Node2D) -> void:
     var rarity_names := ["common", "rare", "legendary", "mythic", "ancient"]
     var slots := [["ÁO", "shirt"], ["QUẦN", "pants"], ["GIÀY", "boots"], ["GIÁP", "armor"], ["VŨ KHÍ", "weapon"]]
     for entry in slots:
-        var item: Dictionary = player.equipment.get(entry[0], {})
+        var item: Dictionary = _dict_value(player.equipment, entry[0], {})
         if item.is_empty():
             continue
-        var rarity := clampi(int(item.get("rarity", 0)), 0, 4)
+        var rarity := clampi(int(_dict_value(item, "rarity", 0)), 0, 4)
         var overlay := Sprite2D.new()
         overlay.name = "Equip_%s" % entry[1]
         overlay.texture = load("res://assets/replayborn/equipment/overlays/%s/%s.png" % [rarity_names[rarity], entry[1]])

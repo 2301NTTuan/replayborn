@@ -26,6 +26,9 @@ var pause_button: Button
 var pickup_label: Label
 var pickup_left: float = 0.0
 
+func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
+	return source[key] if source.has(key) else fallback
+
 func t(key: String) -> String:
 	return UI.text(key, game.profile)
 
@@ -33,7 +36,7 @@ func hud_card(rect: Rect2, border: Color = Color("315976")) -> Panel:
 	var panel := Panel.new()
 	panel.position = rect.position
 	panel.size = rect.size
-	panel.add_theme_stylebox_override("panel", UI.box(Color("0a1a2e", 0.96), 16, border, 2))
+	panel.add_theme_stylebox_override("panel", UI.box(Color("08111f", 0.90), 9, border, 1))
 	root_control.add_child(panel)
 	return panel
 
@@ -46,89 +49,103 @@ func bind_game(owner_game: Node) -> void:
 	root_control.theme = UI.theme()
 	root_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root_control)
-	var backdrop := Panel.new()
-	backdrop.position = Vector2(28, 22)
-	backdrop.size = Vector2(1024, 330)
-	backdrop.add_theme_stylebox_override("panel", UI.box(Color("061222", 0.82), 24, Color("264a67"), 2))
-	root_control.add_child(backdrop)
-	hud_card(Rect2(46, 38, 294, 82), Color("55ebd2"))
-	hud_card(Rect2(354, 38, 258, 82), Color("315976"))
-	hud_card(Rect2(626, 38, 164, 82), Color("ffd166"))
-	hud_card(Rect2(46, 134, 986, 74), Color("315976"))
-	hud_card(Rect2(46, 216, 986, 118), Color("315976"))
+	# The HUD intentionally has no enclosing box. It reads as a light tactical
+	# overlay instead of a heavy window sitting over the game world.
+	hud_card(Rect2(36, 20, 1008, 54), Color("315c78"))
+	hud_card(Rect2(36, 86, 1008, 34), Color("6f4052"))
+	hud_card(Rect2(36, 132, 492, 34), Color("514375"))
+	hud_card(Rect2(552, 132, 492, 34), Color("35606b"))
 	var run_caption := UI.label(root_control, "RUN STATUS", 16)
-	run_caption.position = Vector2(68, 49)
-	run_caption.size = Vector2(240, 22)
-	run_caption.add_theme_color_override("font_color", Color("55ebd2"))
+	run_caption.position = Vector2(58, 27)
+	run_caption.size = Vector2(220, 18)
+	run_caption.add_theme_font_size_override("font_size", 14)
+	run_caption.add_theme_color_override("font_color", Color("7ff5d8"))
 	clock_label = UI.label(root_control, "00:00", 38, true)
-	clock_label.position = Vector2(370, 51)
-	clock_label.size = Vector2(226, 48)
+	clock_label.position = Vector2(350, 27)
+	clock_label.size = Vector2(140, 40)
+	clock_label.add_theme_font_size_override("font_size", 28)
 	clock_label.add_theme_color_override("font_color", Color("effbff"))
 	gold_label = UI.label(root_control, "", 22, true)
-	gold_label.position = Vector2(638, 58)
-	gold_label.size = Vector2(140, 42)
+	gold_label.position = Vector2(510, 34)
+	gold_label.size = Vector2(124, 28)
+	gold_label.add_theme_font_size_override("font_size", 18)
 	gold_label.clip_text = true
-	gold_label.add_theme_color_override("font_color", Color("ffd166"))
+	gold_label.add_theme_color_override("font_color", Color("f2c45b"))
 	stats_label = UI.label(root_control, "", 24)
-	stats_label.position = Vector2(68, 75)
-	stats_label.size = Vector2(250, 32)
+	stats_label.position = Vector2(58, 48)
+	stats_label.size = Vector2(230, 22)
+	stats_label.add_theme_font_size_override("font_size", 17)
 	stats_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	stats_label.clip_text = true
-	stats_label.add_theme_color_override("font_color", Color("aec4d7"))
-	var vital_caption := UI.label(root_control, "VITAL // HP", 16)
-	vital_caption.position = Vector2(66, 143)
-	vital_caption.size = Vector2(220, 22)
-	vital_caption.add_theme_color_override("font_color", Color("ff9eb1"))
+	stats_label.add_theme_color_override("font_color", Color("c0d2df"))
+	var vital_caption := UI.label(root_control, "HP", 14)
+	vital_caption.position = Vector2(62, 93)
+	vital_caption.size = Vector2(54, 20)
+	vital_caption.add_theme_font_size_override("font_size", 14)
+	vital_caption.add_theme_color_override("font_color", Color("ffe2e8"))
 	health_label = UI.label(root_control, "", 21)
-	health_label.position = Vector2(765, 141)
-	health_label.size = Vector2(240, 28)
+	health_label.position = Vector2(836, 93)
+	health_label.size = Vector2(184, 20)
+	health_label.add_theme_font_size_override("font_size", 15)
 	health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	health_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	health_label.clip_text = true
 	health_label.add_theme_color_override("font_color", Color("effbff"))
 	health_label.add_theme_color_override("font_color", Color("ff91a5"))
 	health_bar = ProgressBar.new()
-	health_bar.position = Vector2(66, 173)
-	health_bar.size = Vector2(946, 16)
+	health_bar.position = Vector2(52, 91)
+	health_bar.size = Vector2(976, 24)
 	health_bar.show_percentage = false
-	health_bar.add_theme_stylebox_override("background", UI.box(Color("210f22"), 8, Color("713348"), 1))
-	health_bar.add_theme_stylebox_override("fill", UI.box(Color("ff637d"), 8))
+	health_bar.add_theme_stylebox_override("background", UI.box(Color("210f22"), 5, Color("713348"), 1))
+	health_bar.add_theme_stylebox_override("fill", UI.box(Color("ff637d"), 5))
 	root_control.add_child(health_bar)
-	var memory_caption := UI.label(root_control, "REPLAY MEMORY", 16)
-	memory_caption.position = Vector2(66, 226)
-	memory_caption.size = Vector2(250, 22)
-	memory_caption.add_theme_color_override("font_color", Color("55ebd2"))
+	var memory_caption := UI.label(root_control, "REPLAY", 14)
+	memory_caption.position = Vector2(62, 139)
+	memory_caption.size = Vector2(86, 18)
+	memory_caption.add_theme_font_size_override("font_size", 13)
+	memory_caption.add_theme_color_override("font_color", Color("e4dbff"))
 	echo_label = UI.label(root_control, "", 22)
-	echo_label.position = Vector2(66, 251)
-	echo_label.size = Vector2(455, 26)
+	echo_label.position = Vector2(154, 139)
+	echo_label.size = Vector2(342, 18)
+	echo_label.add_theme_font_size_override("font_size", 13)
 	echo_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	echo_label.clip_text = true
 	echo_label.add_theme_color_override("font_color", Color("b78cff"))
 	xp_label = UI.label(root_control, "", 19)
-	xp_label.position = Vector2(548, 251)
-	xp_label.size = Vector2(464, 26)
+	xp_label.position = Vector2(574, 139)
+	xp_label.size = Vector2(436, 18)
+	xp_label.add_theme_font_size_override("font_size", 13)
 	xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	xp_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	xp_label.clip_text = true
 	xp_label.add_theme_color_override("font_color", Color("ffd26a"))
 	progress = ProgressBar.new()
-	progress.position = Vector2(66, 278)
-	progress.size = Vector2(450, 6)
+	progress.position = Vector2(50, 137)
+	progress.size = Vector2(456, 24)
 	progress.max_value = 900
 	progress.show_percentage = false
-	progress.add_theme_stylebox_override("background", UI.box(Color("15142b"), 8, Color("443b72"), 1))
-	progress.add_theme_stylebox_override("fill", UI.box(Color("b78cff"), 8))
+	progress.add_theme_stylebox_override("background", UI.box(Color("15142b"), 7, Color("443b72"), 1))
+	progress.add_theme_stylebox_override("fill", UI.box(Color("b78cff"), 7))
 	root_control.add_child(progress)
 	xp_progress = ProgressBar.new()
-	xp_progress.position = Vector2(548, 278)
-	xp_progress.size = Vector2(464, 6)
+	xp_progress.position = Vector2(566, 137)
+	xp_progress.size = Vector2(472, 24)
 	xp_progress.show_percentage = false
 	root_control.add_child(xp_progress)
+	root_control.move_child(vital_caption, root_control.get_child_count() - 1)
+	root_control.move_child(health_label, root_control.get_child_count() - 1)
+	root_control.move_child(memory_caption, root_control.get_child_count() - 1)
+	root_control.move_child(echo_label, root_control.get_child_count() - 1)
+	root_control.move_child(xp_label, root_control.get_child_count() - 1)
 	pause_button = UI.button(root_control, t("pause"), game.toggle_pause)
-	# Align the pause block with the gold resource card above it.
-	pause_button.position = Vector2(812, 38)
-	pause_button.size = Vector2(164, 82)
+	pause_button.position = Vector2(830, 26)
+	pause_button.size = Vector2(194, 42)
+	pause_button.add_theme_font_size_override("font_size", 18)
 	pause_button.text = "Ⅱ  " + t("pause")
+	var field_caption := UI.label(root_control, "VOID GARDEN  //  LIVE", 13, true)
+	field_caption.position = Vector2(644, 38)
+	field_caption.size = Vector2(168, 20)
+	field_caption.add_theme_color_override("font_color", Color("7894ad"))
 	joystick = Joystick.new()
 	joystick.name = "Joystick"
 	# The joystick is an invisible full-playfield touch layer with no visual.
@@ -138,23 +155,23 @@ func bind_game(owner_game: Node) -> void:
 	joystick.direction_changed.connect(func(direction: Vector2) -> void: game.player.touch_direction = direction)
 	root_control.add_child(joystick)
 	announcement_panel = Panel.new()
-	announcement_panel.position = Vector2(156, 344)
+	announcement_panel.position = Vector2(156, 218)
 	announcement_panel.size = Vector2(768, 58)
 	announcement_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	announcement_panel.add_theme_stylebox_override("panel", UI.box(Color("0b1d30", 0.94), 18, Color("b78cff", 0.58), 2))
 	root_control.add_child(announcement_panel)
 	announcement_panel.hide()
 	announcement = UI.label(root_control, "", 25, true)
-	announcement.position = Vector2(120, 354)
+	announcement.position = Vector2(120, 228)
 	announcement.size = Vector2(840, 64)
 	announcement.autowrap_mode = TextServer.AUTOWRAP_OFF
 	announcement.clip_text = true
 	announcement.add_theme_color_override("font_color", Color("ffd26a"))
 	pickup_label = UI.label(root_control, "", 24, true)
-	pickup_label.position = Vector2(220, 302)
+	pickup_label.position = Vector2(220, 185)
 	pickup_label.size = Vector2(640, 40)
 	boss_label = UI.label(root_control, "", 24, true)
-	boss_label.position = Vector2(100, 402)
+	boss_label.position = Vector2(100, 284)
 	boss_label.size = Vector2(880, 38)
 	boss_label.add_theme_font_size_override("font_size", 19)
 	boss_label.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -168,12 +185,6 @@ func bind_game(owner_game: Node) -> void:
 	hint.autowrap_mode = TextServer.AUTOWRAP_OFF
 	hint.clip_text = true
 	hint.add_theme_color_override("font_color", Color("7894ad"))
-	# Keep the gameplay HUD inside a portrait safe area. The overlay and touch layer
-	# use the full viewport and must not inherit this inset.
-	for child in root_control.get_children():
-		if child == joystick or child.name == "BottomHint":
-			continue
-		child.position.y += 42
 	overlay = ColorRect.new()
 	overlay.color = Color(0.012, 0.026, 0.055, 0.96)
 	overlay.size = Vector2(1080, 1920)
@@ -297,7 +308,7 @@ func show_upgrades(offers: Array) -> void:
 		var title: String = item.title_en if english else item.title_vi
 		var description: String = item.description_en if english else item.description_vi
 		if item.core_type == "weapon":
-			description += "  " + "★".repeat(game.upgrade_counts.get(item.id, 0) + 1)
+			description += "  " + "★".repeat(int(dict_value(game.upgrade_counts, item.id, 0)) + 1)
 		var offer := UI.card(body, accents[index % accents.size()])
 		var offer_panel := offer.get_parent() as PanelContainer
 		offer_panel.modulate.a = 0.0

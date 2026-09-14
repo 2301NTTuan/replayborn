@@ -1,17 +1,17 @@
 extends RefCounted
 const Words = preload("res://scripts/core/words.gd")
 
-const INK := Color("eaf4ff")
-const MUTED := Color("8ea7bf")
-const CYAN := Color("55ebd2")
-const CYAN_DARK := Color("0e726d")
-const SURFACE := Color("101e31")
-const SURFACE_ALT := Color("162a42")
+const INK := Color("edf6ff")
+const MUTED := Color("8a9caf")
+const CYAN := Color("72f6d4")
+const CYAN_DARK := Color("16806f")
+const SURFACE := Color("0b1320")
+const SURFACE_ALT := Color("142033")
 
 static func text(key: String, profile: Node) -> String:
 	return Words.get_text(key, profile.data.language)
 
-static func box(color: Color, radius: int = 18, border: Color = Color.TRANSPARENT, border_width: int = 0) -> StyleBoxFlat:
+static func box(color: Color, radius: int = 10, border: Color = Color.TRANSPARENT, border_width: int = 0) -> StyleBoxFlat:
 	var result := StyleBoxFlat.new()
 	result.bg_color = color
 	result.set_corner_radius_all(radius)
@@ -25,18 +25,18 @@ static func theme() -> Theme:
 	result.default_font_size = 27
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		var color := SURFACE_ALT
-		if state == "hover": color = Color("1e3d58")
-		elif state == "pressed": color = Color("0d6070")
+		if state == "hover": color = Color("1a2c45")
+		elif state == "pressed": color = Color("145a61")
 		elif state == "disabled": color = Color("172233")
-		var border := CYAN if state == "focus" else Color("294c68")
-		result.set_stylebox(state, "Button", box(color, 18, border, 3 if state == "focus" else 2))
+		var border := CYAN if state == "focus" else Color("2a4058")
+		result.set_stylebox(state, "Button", box(color, 10, border, 3 if state == "focus" else 1))
 		var primary_color := CYAN_DARK
-		if state == "hover": primary_color = Color("149a8e")
-		elif state == "pressed": primary_color = Color("075150")
+		if state == "hover": primary_color = Color("18a58f")
+		elif state == "pressed": primary_color = Color("0d5c57")
 		elif state == "disabled": primary_color = Color("1b3942")
-		result.set_stylebox(state, "PrimaryButton", box(primary_color, 20, Color("93fff0") if state == "focus" else CYAN, 3 if state == "focus" else 2))
+		result.set_stylebox(state, "PrimaryButton", box(primary_color, 12, Color("ccfff5") if state == "focus" else CYAN, 3 if state == "focus" else 1))
 		var danger_color := Color("582c45") if state == "normal" else Color("793552")
-		result.set_stylebox(state, "DangerButton", box(danger_color, 18, Color("9b506f"), 2))
+		result.set_stylebox(state, "DangerButton", box(danger_color, 10, Color("9b506f"), 1))
 	result.set_type_variation("PrimaryButton", "Button")
 	result.set_type_variation("DangerButton", "Button")
 	result.set_color("font_color", "Label", INK)
@@ -44,11 +44,11 @@ static func theme() -> Theme:
 	result.set_color("font_hover_color", "Button", Color.WHITE)
 	result.set_color("font_pressed_color", "Button", Color("c9fff6"))
 	result.set_color("font_disabled_color", "Button", MUTED)
-	result.set_stylebox("normal", "OptionButton", box(SURFACE_ALT, 16, Color("315976"), 2))
-	result.set_stylebox("hover", "OptionButton", box(Color("1e3d58"), 16, CYAN, 2))
-	result.set_stylebox("focus", "OptionButton", box(Color("1e3d58"), 16, CYAN, 3))
-	result.set_stylebox("background", "ProgressBar", box(Color("07111f"), 8, Color("294b67"), 1))
-	result.set_stylebox("fill", "ProgressBar", box(CYAN, 8))
+	result.set_stylebox("normal", "OptionButton", box(SURFACE_ALT, 10, Color("2a4058"), 1))
+	result.set_stylebox("hover", "OptionButton", box(Color("1a2c45"), 10, CYAN, 1))
+	result.set_stylebox("focus", "OptionButton", box(Color("1a2c45"), 10, CYAN, 2))
+	result.set_stylebox("background", "ProgressBar", box(Color("07111f"), 5, Color("20344b"), 1))
+	result.set_stylebox("fill", "ProgressBar", box(CYAN, 5))
 	return result
 
 static func label(parent: Node, value: String, font_size: int = 28, centered: bool = false) -> Label:
@@ -70,7 +70,7 @@ static func button(parent: Node, value: String, callback: Callable, height: floa
 	var item := Button.new()
 	item.text = value
 	item.custom_minimum_size.y = height
-	item.add_theme_font_size_override("font_size", 27)
+	item.add_theme_font_size_override("font_size", 25)
 	item.pressed.connect(callback)
 	parent.add_child(item)
 	return item
@@ -78,7 +78,7 @@ static func button(parent: Node, value: String, callback: Callable, height: floa
 static func primary_button(parent: Node, value: String, callback: Callable, height: float = 104) -> Button:
 	var item := button(parent, value, callback, height)
 	item.theme_type_variation = &"PrimaryButton"
-	item.add_theme_font_size_override("font_size", 32)
+	item.add_theme_font_size_override("font_size", 30)
 	return item
 
 static func danger_button(parent: Node, value: String, callback: Callable, height: float = 88) -> Button:
@@ -88,11 +88,11 @@ static func danger_button(parent: Node, value: String, callback: Callable, heigh
 
 static func card(parent: Node, accent: Color = Color("315976")) -> VBoxContainer:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", box(SURFACE, 22, accent, 2))
+	panel.add_theme_stylebox_override("panel", box(SURFACE, 10, accent, 1))
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(panel)
 	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 10)
+	content.add_theme_constant_override("separation", 8)
 	panel.add_child(content)
 	return content
 

@@ -2,7 +2,8 @@ extends Control
 
 signal direction_changed(direction: Vector2)
 const MIN_TOUCH_Y: float = 300.0
-const RADIUS: float = 105.0
+const RADIUS: float = 122.0
+const DEADZONE: float = 0.08
 var finger: int = -1
 var direction: Vector2 = Vector2.ZERO
 var center: Vector2 = Vector2.ZERO
@@ -20,9 +21,12 @@ func _input(event: InputEvent) -> void:
 		update_direction(get_global_transform_with_canvas().affine_inverse() * event.position)
 
 func update_direction(local: Vector2) -> void:
-	direction = ((local - center) / RADIUS).limit_length()
-	if direction.length() < 0.15:
+	var raw := ((local - center) / RADIUS).limit_length()
+	if raw.length() < DEADZONE:
 		direction = Vector2.ZERO
+	else:
+		var strength := (raw.length() - DEADZONE) / (1.0 - DEADZONE)
+		direction = raw.normalized() * clampf(strength, 0.0, 1.0)
 	direction_changed.emit(direction)
 	queue_redraw()
 

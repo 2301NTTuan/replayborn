@@ -19,7 +19,7 @@ static func advance(enemy: Node2D, delta: float, direction: Vector2) -> void:
 		enemy.animation_state = &"windup"
 		if enemy.windup <= 0.0:
 			fire(enemy, family)
-			enemy.attack_hold = 0.28
+			enemy.attack_hold = 0.52
 			enemy.shot_time = 3.0 + float(family % 3) * 0.45
 		return
 	var movement := direction
@@ -55,7 +55,7 @@ static func fire(enemy: Node2D, family: int) -> void:
 		14: zone(enemy, 175.0, 0.85, damage, 2.3) # Venom crown.
 
 static func zone(enemy: Node2D, radius: float, delay: float, damage: int, duration: float) -> void:
-	enemy.game.combat.enemy_zones.append({"position": enemy.position, "radius": radius, "delay": delay, "duration": duration, "damage": damage, "age": 0.0, "hit": false})
+	enemy.game.combat.add_enemy_zone({"position": enemy.position, "radius": radius, "delay": delay, "duration": duration, "damage": damage, "age": 0.0, "hit": false})
 
 static func dash(enemy: Node2D, aim: Vector2, duration: float) -> void:
 	enemy.dash_vector = aim

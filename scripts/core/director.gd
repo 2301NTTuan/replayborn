@@ -2,6 +2,7 @@ extends RefCounted
 
 const Catalog = preload("res://scripts/data/catalog.gd")
 const LEVEL_COUNT := 5
+const MAX_ACTIVE_ENEMIES: int = 62
 
 var game: Node
 var spawn_left: float = 0.8
@@ -44,7 +45,7 @@ func advance(delta: float) -> void:
 		spawn_left = 0.9
 		return
 	spawn_left -= delta
-	if spawn_left > 0 or game.enemies.size() >= 80:
+	if spawn_left > 0 or game.enemies.size() >= MAX_ACTIVE_ENEMIES:
 		return
 	var order: Array[int] = game.map_data.enemies_for_stage(mini(stage, LEVEL_COUNT - 1))
 	if order.is_empty():
@@ -58,11 +59,11 @@ func advance(delta: float) -> void:
 		elite = 1 if randf() < 0.72 else 2
 	game.spawn_enemy(data, elite, enemy_difficulty())
 	# The opening is deliberately calm, then the single-spawn cadence tightens.
-	var cadence := 1.15 if not hard_phase else 0.72
+	var cadence := 1.30 if not hard_phase else 0.88
 	spawn_left = cadence / game.map_data.spawn_scale
 
 func spawn_horde() -> void:
-	if game.enemies.size() >= 80:
+	if game.enemies.size() >= MAX_ACTIVE_ENEMIES:
 		return
 	horde_index += 1
 	var order: Array[int] = game.map_data.enemies_for_stage(mini(stage, LEVEL_COUNT - 1))
@@ -70,8 +71,8 @@ func spawn_horde() -> void:
 		return
 	var phase_time: float = game.run_time - level_started_at
 	var hard_phase: bool = phase_time >= PHASE_DURATION
-	var count := 6 if not hard_phase else 10
-	var capacity: int = 80 - game.enemies.size()
+	var count := 5 if not hard_phase else 7
+	var capacity: int = MAX_ACTIVE_ENEMIES - game.enemies.size()
 	count = mini(count, capacity)
 	for index in range(count):
 		var data: Resource = Catalog.ENEMIES[order[(index + horde_index) % order.size()]]

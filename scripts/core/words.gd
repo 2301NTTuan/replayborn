@@ -40,6 +40,9 @@ const TEXT: Dictionary = {
 "confirm": ["Đồng ý", "Confirm"], "cancel": ["Hủy", "Cancel"]
 }
 
+static func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
+	return source[key] if source.has(key) else fallback
+
 static func get_text(key: String, language: String = "vi") -> String:
-	var pair: Array = TEXT.get(key, [key, key])
+	var pair: Array = dict_value(TEXT, key, [key, key])
 	return pair[1 if language == "en" else 0]

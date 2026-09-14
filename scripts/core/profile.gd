@@ -10,6 +10,9 @@ var warning: String = ""
 var selected_weapon: int = 0
 var practice: bool = false
 
+func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
+	return source[key] if source.has(key) else fallback
+
 func _ready() -> void:
 	load_profile()
 
@@ -60,7 +63,7 @@ func load_profile() -> void:
 			warning = "save_recovered" if valid_profile(loaded) else "save_reset"
 	if valid_profile(loaded):
 		for key in data:
-			data[key] = loaded.get(key, data[key])
+			data[key] = dict_value(loaded, key, data[key])
 		data.volume = clampf(data.volume, 0, 1)
 		data.music = clampf(data.music, 0, 1)
 		for key in ["runs", "wins", "kills"]:
@@ -77,7 +80,7 @@ func load_profile() -> void:
 		if not data.has("meta_upgrades") or not data.meta_upgrades is Dictionary:
 			data.meta_upgrades = defaults().meta_upgrades
 		for stat in ["hp", "damage", "armor", "haste"]:
-			data.meta_upgrades[stat] = clampi(int(data.meta_upgrades.get(stat, 0)), 0, 20)
+			data.meta_upgrades[stat] = clampi(int(dict_value(data.meta_upgrades, stat, 0)), 0, 20)
 		data.upgrade_core = clampi(int(data.upgrade_core), 0, 2147483647) if data.upgrade_core is float or data.upgrade_core is int else 25
 		if not data.has("equipment") or not data.equipment is Dictionary:
 			data.equipment = default_equipment()
@@ -133,13 +136,13 @@ func add_rewards(gold: int, core: int, slot: String = "", shards: int = 0) -> vo
 	data.gold += maxi(0, gold)
 	data.upgrade_core += maxi(0, core)
 	if slot in SLOTS:
-		data.shards[slot] = data.shards.get(slot, 0) + maxi(0, shards)
+		data.shards[slot] = int(dict_value(data.shards, slot, 0)) + maxi(0, shards)
 	save_profile()
 
 func upgrade_meta(stat: String) -> bool:
 	if stat not in ["hp", "damage", "armor", "haste"]:
 		return false
-	var level: int = int(data.meta_upgrades.get(stat, 0))
+	var level: int = int(dict_value(data.meta_upgrades, stat, 0))
 	var cost := 100 + level * 75
 	if data.gold < cost or level >= 20:
 		return false
@@ -165,12 +168,12 @@ func upgrade_equipment(slot: String) -> bool:
 	return true
 
 func chest_ready(rarity: String) -> bool:
-	var chest: Dictionary = data.chests.get(rarity, {})
-	if chest.get("last_free", "") == "":
+	var chest: Dictionary = dict_value(data.chests, rarity, {})
+	if String(dict_value(chest, "last_free", "")) == "":
 		return true
 	var today: int = Time.get_unix_time_from_system() / 86400
-	var opened: int = int(chest.get("last_day", 0))
-	return today - opened >= int(chest.get("free_days", 1))
+	var opened: int = int(dict_value(chest, "last_day", 0))
+	return today - opened >= int(dict_value(chest, "free_days", 1))
 
 func open_chest(slot: String, rarity_index: int, paid: bool = false) -> Dictionary:
 	if slot not in SLOTS:
@@ -207,8 +210,8 @@ func open_chest_with_priority(slot: String, rarity_index: int) -> Dictionary:
 	if chest_ready(rarity):
 		var free_item := open_chest(slot, rarity_index, false)
 		return {"status": "free", "item": free_item}
-	var chest: Dictionary = data.chests.get(rarity, {})
-	var cost: int = int(chest.get("gold", 0))
+	var chest: Dictionary = dict_value(data.chests, rarity, {})
+	var cost: int = int(dict_value(chest, "gold", 0))
 	if data.gold >= cost:
 		var paid_item := open_chest(slot, rarity_index, true)
 		return {"status": "gold", "item": paid_item, "cost": cost}

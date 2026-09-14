@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "secondary_beam"
+title_vi = "Tia phân rã"
+title_en = "Decay Beam"
+description_vi = "Tự phóng tia vào mục tiêu gần nhất, sát thương tăng và hồi chiêu giảm theo cấp."
+description_en = "Automatically zaps the nearest target; damage rises and cooldown falls."
+stat = "secondary"
+limit = 5
+core_type = "weapon"
+weapon_id = "beam"

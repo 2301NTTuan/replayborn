@@ -11,6 +11,9 @@ extends Resource
 @export var boss_scale: float = 1.0
 
 func enemies_for_stage(stage: int) -> Array[int]:
+	if id == "neon_ruins":
+		var first := 10 + clampi(stage, 0, 4) * 3
+		return [first, first + 1, first + 2]
 	# Every level uses a fixed trio. The map's order changes the trio and its rhythm.
 	var result: Array[int] = []
 	if enemy_order.is_empty():

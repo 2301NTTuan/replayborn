@@ -27,6 +27,10 @@ func draw_projectiles(canvas: Node2D) -> void:
     var fsize := Vector2(28, 28)
     for bullet in game.combat.friendly:
         var mod := Color(0.58, 0.66, 1.0, 0.72) if bullet.ghost else Color.WHITE
+        if bullet.get("secondary_id", "") == "boomerang":
+            mod = Color("55ebd2")
+        elif bullet.get("secondary_id", "") == "drone":
+            mod = Color("ffd166")
         canvas.draw_texture_rect(friendly_projectile, Rect2(bullet.position - fsize * 0.5, fsize), false, mod)
     var hsize := Vector2(30, 30)
     for bullet in game.combat.hostile:
@@ -115,15 +119,37 @@ func get_anime_enemy_frames(id: String) -> SpriteFrames:
 func attach_enemy(enemy: Node2D) -> void:
     if enemy.has_node("ArtVisual") or enemy.spec == null:
         return
+    if enemy.spec.family >= 0:
+        var creature := AnimatedSprite2D.new()
+        creature.name = "ArtVisual"
+        creature.sprite_frames = roster_frames(enemy.spec.family)
+        creature.position = Vector2(0, -12)
+        creature.scale = Vector2.ONE * (enemy.radius * 2.8 / 132.0)
+        creature.z_index = 8
+        enemy.add_child(creature)
+        creature.play("idle")
+        return
     var id := String(enemy.spec.id)
-    if id in ["chaser", "runner", "charger", "shooter", "orbiter"] or id.begins_with("boss_"):
+    if id.begins_with("boss_"):
+        var boss_sprite := AnimatedSprite2D.new()
+        boss_sprite.name = "ArtVisual"
+        boss_sprite.sprite_frames = boss_frames(id)
+        var cell_width: float = boss_sprite.sprite_frames.get_frame_texture("idle", 0).get_width()
+        boss_sprite.scale = Vector2.ONE * (enemy.radius * 3.2 / cell_width)
+        boss_sprite.position = Vector2(0, -enemy.radius * 0.3)
+        boss_sprite.z_index = 8
+        enemy.add_child(boss_sprite)
+        boss_sprite.play("idle")
+        return
+    if id in ["chaser", "runner", "charger", "shooter", "orbiter"]:
         var anime_sprite := AnimatedSprite2D.new()
         anime_sprite.name = "ArtVisual"
-        anime_sprite.sprite_frames = get_anime_enemy_frames("archive_colossus" if id.begins_with("boss_") else "rift_crawler")
-        var visual_scale: float = 0.23 if id.begins_with("boss_") else (0.08 if id == "charger" else 0.07)
+        anime_sprite.sprite_frames = get_anime_enemy_frames("rift_crawler")
+        var visual_scale: float = 0.08 if id == "charger" else 0.07
         anime_sprite.scale = Vector2(visual_scale, visual_scale)
-        if id.begins_with("boss_"):
-            anime_sprite.modulate = enemy.spec.tint.lerp(Color.WHITE, 0.42)
+        var colors := {"chaser": Color("f5a3bd"), "runner": Color("65e9ff"), "charger": Color("ffc05c"), "shooter": Color("ba8bff"), "orbiter": Color("83ef8c")}
+        anime_sprite.modulate = colors[id]
+        anime_sprite.speed_scale = 1.5 if id == "runner" else (0.75 if id == "charger" else 1.0)
         anime_sprite.z_index = 8
         enemy.add_child(anime_sprite)
         anime_sprite.play("run")
@@ -149,8 +175,61 @@ func update_enemy(enemy: Node2D) -> void:
     var sprite := visual as AnimatedSprite2D
     if sprite == null:
         return
-    if enemy.target != null:
+    if enemy.spec.family >= 0 or String(enemy.spec.id).begins_with("boss_"):
+        var wanted: StringName = &"hurt" if enemy.flash > 0 and not enemy.dead else enemy.animation_state
+        if sprite.animation != wanted:
+            sprite.play(wanted)
+        sprite.modulate = Color("ff8585") if wanted == &"hurt" else Color.WHITE
+        if enemy.dead:
+            sprite.modulate.a = clampf(enemy.death_left / 0.42, 0.0, 1.0)
+        elif enemy.spawn_protection > 0:
+            var spawn_duration := 2.0 if String(enemy.spec.id).begins_with("boss_") else 0.7
+            sprite.modulate.a = clampf(1.0 - enemy.spawn_protection / spawn_duration, 0.15, 1.0)
+    if not enemy.dead and is_instance_valid(enemy.target):
         sprite.flip_h = enemy.target.position.x < enemy.position.x
+
+func boss_frames(id: String) -> SpriteFrames:
+    var key := "boss_art_" + id
+    if anime_enemy_frames.has(key):
+        return anime_enemy_frames[key]
+    var texture := load("res://assets/original_v1/bosses/%s_v2.png" % id) as Texture2D
+    var cell := Vector2(texture.get_width() / 4.0, texture.get_height() / 2.0)
+    var frames := SpriteFrames.new()
+    frames.remove_animation(&"default")
+    var poses := {"idle": [0], "run": [1, 2], "windup": [3], "attack": [4], "hurt": [5], "death": [6, 7]}
+    for state in poses:
+        frames.add_animation(state)
+        frames.set_animation_speed(state, 7.0 if state == "run" else 5.0)
+        frames.set_animation_loop(state, state in ["run", "idle"])
+        for index in poses[state]:
+            var atlas := AtlasTexture.new()
+            atlas.atlas = texture
+            atlas.region = Rect2(Vector2(index % 4, floori(float(index) / 4.0)) * cell, cell)
+            frames.add_frame(state, atlas)
+    anime_enemy_frames[key] = frames
+    return frames
+
+func roster_frames(family: int) -> SpriteFrames:
+    var key := "roster_%d" % family
+    if anime_enemy_frames.has(key):
+        return anime_enemy_frames[key]
+    var texture := load("res://assets/original_v1/enemy_roster_v2.png") as Texture2D
+    # Generated atlas row heights follow each creature's silhouette, not a uniform grid.
+    var rows := [0, 108, 210, 313, 423, 547, 664, 763, 888, 1020, 1189, 1315, 1465, 1593, 1765, 1983]
+    var frames := SpriteFrames.new()
+    frames.remove_animation(&"default")
+    var poses := {"idle": [0], "run": [1, 0, 2, 0], "windup": [3], "attack": [4], "hurt": [3], "death": [4, 5]}
+    for state in poses:
+        frames.add_animation(state)
+        frames.set_animation_speed(state, 10.0 if state == "run" else 5.0)
+        frames.set_animation_loop(state, state in ["run", "idle"])
+        for column in poses[state]:
+            var atlas := AtlasTexture.new()
+            atlas.atlas = texture
+            atlas.region = Rect2(float(column) * texture.get_width() / 6.0, rows[family], texture.get_width() / 6.0, rows[family + 1] - rows[family])
+            frames.add_frame(state, atlas)
+    anime_enemy_frames[key] = frames
+    return frames
 
 func attach_echo(echo: Node2D) -> void:
     if echo.has_node("ArtVisual"):

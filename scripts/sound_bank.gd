@@ -8,12 +8,15 @@ var muted: bool = false
 var music_voice: AudioStreamPlayer
 
 func _ready() -> void:
-	for key in ["shot", "hit", "hurt", "echo", "level_up", "upgrade", "win", "lose"]:
+	for key in ["shot", "hit", "hurt", "echo", "level_up", "upgrade", "win", "lose", "secondary_boomerang", "secondary_orbit", "secondary_drone", "secondary_mine", "secondary_beam"]:
 		var params: Array = {
 			"shot": [850.0, 300.0, 0.055], "hit": [220.0, 90.0, 0.06],
 			"hurt": [170.0, 45.0, 0.22], "echo": [330.0, 880.0, 0.3],
 			"level_up": [520.0, 1560.0, 0.42], "upgrade": [440.0, 1100.0, 0.22], "win": [440.0, 1320.0, 0.6],
-			"lose": [220.0, 55.0, 0.5]
+			"lose": [220.0, 55.0, 0.5],
+			"secondary_boomerang": [980.0, 420.0, 0.10], "secondary_orbit": [260.0, 760.0, 0.14],
+			"secondary_drone": [1250.0, 680.0, 0.08], "secondary_mine": [180.0, 680.0, 0.20],
+			"secondary_beam": [720.0, 1320.0, 0.16]
 		}[key]
 		samples[key] = make_tone(params[0], params[1], params[2])
 		var voice := AudioStreamPlayer.new()

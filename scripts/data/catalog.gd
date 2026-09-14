@@ -19,7 +19,22 @@ const ENEMIES: Array = [
 	preload("res://data/enemies/boss_hunter.tres"),
 	preload("res://data/enemies/boss_sentinel.tres"),
 	preload("res://data/enemies/boss_reaper.tres"),
-	preload("res://data/enemies/boss_archon.tres")
+	preload("res://data/enemies/boss_archon.tres"),
+	preload("res://data/enemies/ruby_beetle.tres"),
+	preload("res://data/enemies/neon_jackal.tres"),
+	preload("res://data/enemies/amber_ram.tres"),
+	preload("res://data/enemies/void_spitter.tres"),
+	preload("res://data/enemies/blade_mantis.tres"),
+	preload("res://data/enemies/needle_walker.tres"),
+	preload("res://data/enemies/forge_crab.tres"),
+	preload("res://data/enemies/storm_jelly.tres"),
+	preload("res://data/enemies/rift_scorpion.tres"),
+	preload("res://data/enemies/sword_automaton.tres"),
+	preload("res://data/enemies/spore_carrier.tres"),
+	preload("res://data/enemies/blood_harpy.tres"),
+	preload("res://data/enemies/ghost_centipede.tres"),
+	preload("res://data/enemies/prism_golem.tres"),
+	preload("res://data/enemies/crown_serpent.tres")
 ]
 const UPGRADES: Array = [
 	preload("res://data/upgrades/power.tres"), preload("res://data/upgrades/tempo.tres"),
@@ -30,6 +45,13 @@ const UPGRADES: Array = [
 	preload("res://data/upgrades/echo_power.tres"), preload("res://data/upgrades/multishot.tres"),
 	preload("res://data/upgrades/critical.tres"), preload("res://data/upgrades/siphon.tres"),
 	preload("res://data/upgrades/shield.tres")
+]
+const SECONDARY_WEAPONS: Array = [
+	preload("res://data/upgrades/secondary_boomerang.tres"),
+	preload("res://data/upgrades/secondary_orbit.tres"),
+	preload("res://data/upgrades/secondary_drone.tres"),
+	preload("res://data/upgrades/secondary_mine.tres"),
+	preload("res://data/upgrades/secondary_beam.tres")
 ]
 const MAPS: Array = [
 	preload("res://data/maps/neon_ruins.tres"),

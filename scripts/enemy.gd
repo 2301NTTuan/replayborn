@@ -1,4 +1,9 @@
 extends Node2D
+const Skills = preload("res://scripts/core/enemy_skills.gd")
+var animation_state: StringName = &"idle"
+var windup: float = 0.0
+var attack_hold: float = 0.0
+var death_left: float = 0.42
 
 var spec: Resource
 var target: Node2D
@@ -33,12 +38,17 @@ func setup(data: Resource, owner_game: Node, variant: int, difficulty: float) ->
 	max_health = health
 	radius = data.radius * (1.2 if elite > 0 else 1.0)
 	speed = data.speed * (1.3 if elite == 1 else 1.0)
-	contact_damage = maxi(1, roundi(data.damage * (0.90 + (difficulty - 1.0) * 0.52))) + (5 if elite > 0 else 0)
+	contact_damage = maxi(1, roundi(data.damage * (0.72 + (difficulty - 1.0) * 0.34))) + (3 if elite > 0 else 0)
 	if String(data.id).begins_with("boss_"):
 		boss_target_range = 620.0 + float(_boss_rank()) * 85.0
 	orbit_sign = -1 if randf() < 0.5 else 1
 
 func advance(delta: float) -> void:
+	if dead:
+		death_left -= delta
+		animation_state = &"death"
+		queue_redraw()
+		return
 	flash = maxf(0, flash - delta)
 	if spawn_protection > 0:
 		spawn_protection -= delta
@@ -50,6 +60,8 @@ func advance(delta: float) -> void:
 	var direction: Vector2 = position.direction_to(target.position)
 	if String(spec.id).begins_with("boss_"):
 		_advance_boss(delta, direction)
+	elif spec.family >= 0:
+		Skills.advance(self, delta, direction)
 	else:
 		match spec.id:
 			"charger":
@@ -62,13 +74,11 @@ func advance(delta: float) -> void:
 					cycle = 0
 			"shooter":
 				var distance: float = position.distance_to(target.position)
-				if distance > 460:
-					position += direction * speed * delta
-				elif distance < 300:
-					position -= direction * speed * delta
+				position += direction * speed * delta
 				if shot_time <= 0:
-					game.combat.enemy_shot(position, direction, 280, 8)
-					shot_time = 2.2
+					dash_direction = direction
+					dash_time = 0.38
+					shot_time = 3.2
 			"orbiter":
 				var tangent := Vector2(-direction.y, direction.x) * orbit_sign
 				position += (direction * 0.65 + tangent * 0.75).normalized() * speed * delta
@@ -110,18 +120,30 @@ func _advance_boss(delta: float, direction: Vector2) -> void:
 	skill_primary -= delta
 	skill_secondary -= delta
 	skill_tertiary -= delta
+	attack_hold = maxf(0.0, attack_hold - delta)
+	animation_state = &"run"
+	if minf(skill_primary, minf(skill_secondary, skill_tertiary)) <= 0.45:
+		animation_state = &"windup"
+	if attack_hold > 0.0 or dash_time > 0.0:
+		animation_state = &"attack"
 	if dash_time > 0:
 		dash_time -= delta
 		position += dash_vector * (510.0 + rank * 35.0) * delta
 	else:
 		position += direction * speed * delta
 	if skill_primary <= 0:
+		attack_hold = 0.3
+		animation_state = &"attack"
 		_boss_ring(8 + rank * 2, 205.0 + rank * 18.0, 10 + rank * 2)
 		skill_primary = maxf(1.15, 2.45 - rank * 0.16)
 	if skill_secondary <= 0:
+		attack_hold = 0.3
+		animation_state = &"attack"
 		_boss_fan(direction, 3 + rank, 0.20 + rank * 0.035, 300.0 + rank * 16.0, 12 + rank * 2)
 		skill_secondary = maxf(1.7, 3.7 - rank * 0.20)
 	if skill_tertiary <= 0:
+		attack_hold = 0.3
+		animation_state = &"attack"
 		match String(spec.id):
 			"boss_warden":
 				_boss_cross(250.0, 16)
@@ -166,6 +188,11 @@ func _draw() -> void:
 	if spec == null:
 		return
 	if has_node("ArtVisual"):
+		if dead:
+			return
+		if windup > 0.0:
+			draw_line(Vector2.ZERO, dash_direction * 180.0, Color("ffd166", 0.65), 3)
+			draw_arc(Vector2.ZERO, radius + 8, 0, TAU, 24, Color("ffd166", 0.8), 2)
 		var art_tint: Color = Color.WHITE if flash > 0 and not game.reduced_effects else spec.tint
 		if spawn_protection > 0:
 			draw_arc(Vector2.ZERO, radius + 12, 0, TAU, 24, art_tint, 2)

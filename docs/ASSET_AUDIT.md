@@ -4,6 +4,8 @@ Audit date: 2026-09-13
 
 ## Runtime-used assets
 
+2026-09-14: Neon Ruins now uses `assets/original_v1/enemy_roster_v2.png` for its 15 regular enemy types. Generation prompt, hash and runtime animation details are recorded in `ENEMY_ROSTER_V2.md`. Existing crawler art remains for legacy enemy definitions; boss art is unchanged.
+
 | Runtime group | Paths | Evidence of use | Provenance status |
 | --- | --- | --- | --- |
 | Astria player and Echo | `assets/original_v1/astria_run_v1.png`, `astria_idle_v1.png`, `astria_sprite_frames.tres` | `ui/menu.gd` and `scripts/visuals/art_bridge.gd` | Generated records are documented in `ASSET_PROVENANCE.md`. |

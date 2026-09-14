@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "secondary_mine"
+title_vi = "Mìn cộng hưởng"
+title_en = "Resonance Mine"
+description_vi = "Đặt mìn tại vị trí Player; khi quái chạm vào sẽ nổ theo bán kính tăng dần."
+description_en = "Drops a mine at the Player; enemies trigger an expanding blast."
+stat = "secondary"
+limit = 5
+core_type = "weapon"
+weapon_id = "mine"

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "secondary_drone"
+title_vi = "Drone truy kích"
+title_en = "Hunter Drone"
+description_vi = "Drone tự khóa mục tiêu gần nhất và bắn đạn nhanh; tốc độ tăng theo cấp."
+description_en = "A drone locks onto the nearest enemy and fires fast rounds."
+stat = "secondary"
+limit = 5
+core_type = "weapon"
+weapon_id = "drone"

@@ -6,8 +6,10 @@ var game: Node
 var friendly: Array = []
 var hostile: Array = []
 var effects: Array = []
+var enemy_zones: Array = []
 var fire_left: float = 0
 var grid: Dictionary = {}
+var secondary_cooldowns: Dictionary = {}
 
 func _init(owner_game: Node) -> void:
 	game = owner_game
@@ -36,7 +38,7 @@ func fire(target: Node2D, delta: float) -> Array:
 		var angle: float = (index - (pellets - 1) * 0.5) * maxf(weapon.spread, 0.10)
 		var shot: Dictionary = {
 			"position": muzzle, "velocity": direction.rotated(angle) * weapon.speed * (1 + stats.bullet_speed),
-			"damage": weapon.damage * (1 + stats.damage) * (2.0 if randf() < stats.crit else 1.0),
+			"damage": weapon.damage * 1.5 * (1 + stats.damage) * (2.0 if randf() < stats.crit else 1.0),
 			"pierce": weapon.pierce + int(stats.pierce), "life": weapon.lifetime * (1 + stats.lifetime),
 			"echo_multiplier": 1 + stats.echo_power, "ghost": false
 		}
@@ -47,9 +49,9 @@ func fire(target: Node2D, delta: float) -> Array:
 	game.player.register_shot()
 	return result
 
-func enemy_shot(origin: Vector2, direction: Vector2, speed: float, damage: int) -> void:
+func enemy_shot(origin: Vector2, direction: Vector2, speed: float, damage: int, lifetime: float = 7.0) -> void:
 	if hostile.size() < MAX_HOSTILE:
-		hostile.append({"position": origin, "velocity": direction * speed, "damage": damage, "life": 7.0})
+		hostile.append({"position": origin, "velocity": direction * speed, "damage": damage, "life": lifetime})
 
 func build_grid() -> void:
 	grid.clear()
@@ -72,9 +74,15 @@ func candidates(start: Vector2, finish: Vector2) -> Array:
 
 func advance(delta: float) -> void:
 	build_grid()
+	advance_secondary(delta)
 	for index in range(friendly.size() - 1, -1, -1):
 		var bullet: Dictionary = friendly[index]
 		var previous: Vector2 = bullet.position
+		if bullet.get("homing", false):
+			var homing_target: Node2D = bullet.get("target") as Node2D
+			if is_instance_valid(homing_target) and not homing_target.dead:
+				var desired: Vector2 = bullet.position.direction_to(homing_target.position) * bullet.velocity.length()
+				bullet.velocity = bullet.velocity.lerp(desired, minf(1.0, delta * 7.0))
 		bullet.position += bullet.velocity * delta
 		bullet.life -= delta
 		var contacts: Array = []
@@ -121,7 +129,82 @@ func advance(delta: float) -> void:
 					break
 		if bullet.life <= 0 or not game.ARENA.has_point(bullet.position):
 			hostile.remove_at(index)
+	for index in range(enemy_zones.size() - 1, -1, -1):
+		var zone: Dictionary = enemy_zones[index]
+		zone.age = float(zone.get("age", 0.0)) + delta
+		if not zone.get("hit", false) and zone.age >= float(zone.delay):
+			if game.player.position.distance_to(zone.position) <= float(zone.radius):
+				game.take_damage(int(zone.damage))
+			zone.hit = true
+		if zone.age >= float(zone.delay) + float(zone.duration):
+			enemy_zones.remove_at(index)
 	for index in range(effects.size() - 1, -1, -1):
-		effects[index].life -= delta
+		var effect: Dictionary = effects[index]
+		if effect.get("mine", false):
+			effect.age = float(effect.get("age", 0.0)) + delta
+			if not effect.get("armed", false) and effect.age >= 0.55:
+				effect.armed = true
+			if effect.get("armed", false) and not effect.get("detonated", false):
+				var triggered: bool = effect.age >= 2.0
+				for enemy in game.enemies:
+					if not enemy.dead and enemy.position.distance_to(effect.position) <= float(effect.radius):
+						triggered = true
+				if triggered:
+					# The blast hits every enemy in range, including a boss.
+					for enemy in game.enemies:
+						if not enemy.dead and enemy.position.distance_to(effect.position) <= float(effect.radius):
+							enemy.health -= float(effect.damage)
+							if enemy.health <= 0: game.kill_enemy(enemy)
+					effect.detonated = true
+					effect.life = 0.34
+					game.sound.play("secondary_mine")
+			if effect.get("detonated", false):
+				effect.life -= delta
+		else:
+			effect.life -= delta
 		if effects[index].life <= 0:
 			effects.remove_at(index)
+
+func advance_secondary(delta: float) -> void:
+	for weapon_id in game.secondary_weapons.keys():
+		var level: int = int(game.secondary_weapons[weapon_id])
+		var cooldown: float = float(secondary_cooldowns.get(weapon_id, 0.0)) - delta
+		if cooldown > 0.0:
+			secondary_cooldowns[weapon_id] = cooldown
+			continue
+		var target: Node2D = game.nearest_enemy()
+		if target == null:
+			secondary_cooldowns[weapon_id] = 0.2
+			continue
+		match weapon_id:
+			"boomerang":
+				add_shot({"position": game.player.position, "velocity": game.player.position.direction_to(target.position) * (440.0 + level * 35.0), "damage": 3.0 + level * 2.0, "pierce": 1 + level, "life": 1.2 + level * 0.12, "echo_multiplier": 1.0, "ghost": false, "secondary_id": weapon_id})
+				game.sound.play("secondary_boomerang")
+				secondary_cooldowns[weapon_id] = maxf(0.8, 1.8 - level * 0.16)
+			"orbit":
+				var radius := 82.0 + level * 12.0
+				effects.append({"position": game.player.position, "life": 0.18, "orbit": true, "radius": radius})
+				for enemy in game.enemies:
+					if not enemy.dead and enemy.position.distance_to(game.player.position) <= radius:
+						enemy.health -= 4.0 + level * 2.5
+						if enemy.health <= 0: game.kill_enemy(enemy)
+				game.sound.play("secondary_orbit")
+				secondary_cooldowns[weapon_id] = maxf(0.45, 1.0 - level * 0.08)
+			"drone":
+				var drone_angle: float = game.run_time * 1.35
+				var drone_pos: Vector2 = game.player.position + Vector2.from_angle(drone_angle) * (54.0 + level * 3.0) + Vector2(0, -18)
+				var drone_velocity: Vector2 = drone_pos.direction_to(target.position) * 760.0
+				add_shot({"position": drone_pos, "velocity": drone_velocity, "damage": 5.0 + level * 3.0, "pierce": 0, "life": 2.0, "echo_multiplier": 1.0, "ghost": false, "secondary_id": weapon_id, "homing": true, "target": target})
+				effects.append({"position": drone_pos, "end": target.position, "life": 0.14, "drone_fire": true})
+				game.sound.play("secondary_drone")
+				secondary_cooldowns[weapon_id] = maxf(0.35, 1.25 - level * 0.12)
+			"mine":
+				effects.append({"position": game.player.position, "life": 999.0, "age": 0.0, "mine": true, "armed": false, "detonated": false, "damage": 12.0 + level * 6.0, "radius": 75.0 + level * 12.0})
+				game.sound.play("secondary_mine")
+				secondary_cooldowns[weapon_id] = maxf(1.2, 3.2 - level * 0.25)
+			"beam":
+				effects.append({"position": game.player.position, "end": target.position, "life": 0.16, "beam": true})
+				target.health -= 10.0 + level * 5.0
+				if target.health <= 0: game.kill_enemy(target)
+				game.sound.play("secondary_beam")
+				secondary_cooldowns[weapon_id] = maxf(1.0, 2.7 - level * 0.22)

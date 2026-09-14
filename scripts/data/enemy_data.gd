@@ -1,4 +1,5 @@
 extends Resource
+@export var family: int = -1
 @export var id: String = "chaser"
 @export var title_vi: String = ""
 @export var title_en: String = ""

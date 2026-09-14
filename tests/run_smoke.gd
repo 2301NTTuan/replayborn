@@ -43,19 +43,36 @@ func run() -> void:
 	root.add_child(game)
 	game.set_physics_process(false)
 	game.sound.set_levels(0, 0)
-	game.run_tick = 3599
+	game.run_tick = 17999
 	game.damage_time = 99
 	game._physics_process(1.0 / 60)
-	check(is_instance_valid(game.boss), "first boss appears at one minute")
+	check(is_instance_valid(game.boss), "first boss appears at five minutes")
 	var boss = game.boss
 	boss.spawn_protection = 0
 	boss.skill_primary = 0
 	boss.advance(1.0 / 60)
 	check(game.combat.hostile.size() >= 8, "boss radial skill fires")
-	game.director.boss_defeated = 4
-	game.kill_enemy(boss)
-	game._physics_process(1.0 / 60)
-	check(game.won, "boss kill wins")
+	for level in range(5):
+		check(game.boss.spec == game.Catalog.ENEMIES[5 + level], "distinct boss for level %d" % level)
+		game.run_tick += 18000
+		game.run_time = game.run_tick / 60.0
+		game.kill_enemy(game.boss)
+		game._physics_process(1.0 / 60)
+		if level == 4:
+			for death_tick in range(30):
+				game._physics_process(1.0 / 60)
+			check(game.won, "fifth boss ends the map")
+			break
+		check(not game.won and not game.director.boss_spawned, "intermediate boss starts next wave")
+		var trio: Array = game.map_data.enemies_for_stage(level + 1)
+		for index in range(3):
+			game.director.spawn_left = 0
+			game.director.advance(1.0 / 60)
+			check(game.enemies.back().spec == game.Catalog.ENEMIES[trio[index]], "wave cycles through all three types")
+		game.run_tick += 18000
+		game.damage_time = 99
+		game._physics_process(1.0 / 60)
+		check(game.enemies.size() == 1 and game.director.boss_spawned, "boss phase clears regular enemies")
 	game.queue_free()
 	await process_frame
 	await create_timer(0.2).timeout

@@ -28,6 +28,7 @@ var xp_orbs: Array = []
 var gold_orbs: Array = []
 var echoes: Array = []
 var upgrade_counts: Dictionary = {}
+var secondary_weapons: Dictionary = {}
 var offers: Array = []
 var stats: Dictionary = {"damage": 0.0, "haste": 0, "pellets": 0, "pierce": 0, "bullet_speed": 0.0, "lifetime": 0.0, "armor": 0, "regen": 0, "echo_power": 0.0, "crit": 0.0, "siphon": 0, "grace": 0.0}
 var run_level: int = 1
@@ -177,15 +178,15 @@ func _physics_process(delta: float) -> void:
 		if not enemy.dead and enemy.spawn_protection <= 0 and enemy.position.distance_to(player.position) < enemy.radius + 25:
 			take_damage(enemy.contact_damage)
 		for echo in echoes:
-			if not echo.dead and enemy.position.distance_to(echo.position) < enemy.radius + 25:
+			if not enemy.dead and enemy.spawn_protection <= 0 and not echo.dead and enemy.position.distance_to(echo.position) < enemy.radius + 25:
 				take_echo_damage(echo, enemy.contact_damage)
 	for index in range(enemies.size() - 1, -1, -1):
-		if enemies[index].dead:
+		if enemies[index].dead and enemies[index].death_left <= 0:
 			enemies[index].queue_free()
 			enemies.remove_at(index)
 	if health <= 0:
 		finish(false)
-	elif (practice and run_tick >= 18000) or (not practice and boss_killed):
+	elif (practice and run_tick >= 18000) or (not practice and boss_killed and (not is_instance_valid(boss) or boss.death_left <= 0.0)):
 		finish(true)
 	elif run_tick >= 54000:
 		finish(false)
@@ -297,10 +298,24 @@ func create_echo() -> void:
 
 func offer_upgrades() -> void:
 	var pool: Array = []
+	var weapon_pool: Array = []
+	for item in Catalog.SECONDARY_WEAPONS:
+		if int(secondary_weapons.get(item.weapon_id, 0)) < 5:
+			weapon_pool.append(item)
+	var preferred_weapons: Array = weapon_pool.filter(func(item: Resource) -> bool:
+		return int(secondary_weapons.get(item.weapon_id, 0)) == 0) if secondary_weapons.size() < 3 else weapon_pool.filter(func(item: Resource) -> bool:
+		return int(secondary_weapons.get(item.weapon_id, 0)) > 0)
+	preferred_weapons.shuffle()
+	pool.append_array(preferred_weapons.slice(0, mini(3, preferred_weapons.size())))
+	if pool.size() < 3:
+		var remaining_weapons: Array = weapon_pool.filter(func(item: Resource) -> bool: return item not in pool)
+		remaining_weapons.shuffle()
+		pool.append_array(remaining_weapons.slice(0, 3 - pool.size()))
 	for item in Catalog.UPGRADES:
 		if upgrade_counts.get(item.id, 0) < item.limit and (item.stat != "heal" or health < max_health):
 			pool.append(item)
-	pool.shuffle()
+	if pool.size() < 3:
+		pool.shuffle()
 	offers = pool.slice(0, 3)
 	if offers.is_empty():
 		return
@@ -312,7 +327,17 @@ func apply_upgrade(index: int) -> void:
 	if state != State.UPGRADE or index < 0 or index >= offers.size():
 		return
 	var item: Resource = offers[index]
-	upgrade_counts[item.id] = upgrade_counts.get(item.id, 0) + 1
+	if item.core_type == "weapon":
+		secondary_weapons[item.weapon_id] = mini(5, int(secondary_weapons.get(item.weapon_id, 0)) + 1)
+		upgrade_counts[item.id] = secondary_weapons[item.weapon_id]
+		offers = []
+		state = State.PLAYING
+		get_tree().paused = false
+		hud.close_overlay()
+		sound.play("upgrade")
+		return
+	else:
+		upgrade_counts[item.id] = upgrade_counts.get(item.id, 0) + 1
 	match item.stat:
 		"max_hp":
 			max_health += item.amount
@@ -343,11 +368,97 @@ func _draw() -> void:
 		art.draw_projectiles(self)
 	if combat == null:
 		return
+	draw_secondary_vfx()
 	if art == null:
 		for bullet in combat.friendly:
 			draw_circle(bullet.position, 6 if bullet.ghost else 7, Color("91a5ff") if bullet.ghost else Color("ffe59c"))
 		for bullet in combat.hostile:
 			draw_circle(bullet.position, 10, Color("ff425b"))
 			draw_arc(bullet.position, 12, 0, TAU, 12, Color("ffd0d5"), 2)
+	for zone in combat.enemy_zones:
+		var zone_age: float = float(zone.get("age", 0.0))
+		var zone_delay: float = float(zone.get("delay", 0.7))
+		var zone_radius: float = float(zone.get("radius", 80.0))
+		var zone_ready: float = clampf(zone_age / zone_delay, 0.0, 1.0)
+		var zone_color := Color("ffb347") if zone_ready < 1.0 else Color("d85cff")
+		draw_circle(zone.position, zone_radius, Color(zone_color, 0.035 + zone_ready * 0.045))
+		draw_arc(zone.position, zone_radius, -PI * 0.5, -PI * 0.5 + TAU * zone_ready, 28, Color(zone_color, 0.9), 4.0)
+		draw_arc(zone.position, zone_radius * (0.35 + zone_ready * 0.65), 0, TAU, 24, Color(zone_color, 0.28), 2.0)
+		if zone_ready >= 1.0:
+			draw_circle(zone.position, 9.0 + sin(run_time * 14.0) * 2.0, Color(zone_color, 0.4))
 	for effect in combat.effects:
-		draw_arc(effect.position, 12 + (0.18 - effect.life) * 150, 0, TAU, 12, Color(1, 0.85, 0.6, effect.life / 0.18), 3)
+		if effect.get("mine", false):
+			var mine_age: float = float(effect.get("age", 0.0))
+			var mine_alpha: float = 0.72 if effect.get("armed", false) else 0.36 + sin(mine_age * 12.0) * 0.16
+			if effect.get("detonated", false):
+				var blast_ratio: float = 1.0 - clampf(effect.life / 0.34, 0.0, 1.0)
+				draw_circle(effect.position, float(effect.radius) * blast_ratio, Color(1.0, 0.35, 0.48, 0.16 * (1.0 - blast_ratio)))
+				draw_arc(effect.position, float(effect.radius) * blast_ratio, 0, TAU, 32, Color("ffb0cb", 1.0 - blast_ratio), 5)
+			else:
+				draw_circle(effect.position, 12.0, Color("ff637d", mine_alpha))
+				draw_arc(effect.position, float(effect.radius), 0, TAU, 24, Color("ff637d", mine_alpha * 0.8), 3)
+				draw_arc(effect.position, 20.0 + sin(mine_age * 8.0) * 4.0, 0, TAU, 20, Color("ffd166", mine_alpha), 2)
+		elif effect.get("orbit", false):
+			draw_arc(effect.position, float(effect.radius), 0, TAU, 32, Color("b78cff", effect.life / 0.18), 7)
+		elif effect.get("beam", false):
+			var beam_alpha: float = clampf(effect.life / 0.16, 0.0, 1.0)
+			draw_line(effect.position, effect.end, Color(0.33, 0.92, 0.84, beam_alpha * 0.20), 18)
+			draw_line(effect.position, effect.end, Color("d7fff8", beam_alpha), 4)
+			draw_circle(effect.end, 12.0 + (1.0 - beam_alpha) * 16.0, Color(0.33, 0.92, 0.84, beam_alpha * 0.45))
+		elif effect.get("drone_fire", false):
+			var fire_alpha: float = clampf(effect.life / 0.14, 0.0, 1.0)
+			draw_line(effect.position, effect.end, Color(1.0, 0.82, 0.35, fire_alpha * 0.22), 12)
+			draw_line(effect.position, effect.end, Color("fff1b0", fire_alpha), 3)
+		else:
+			draw_arc(effect.position, 12 + (0.18 - effect.life) * 150, 0, TAU, 12, Color(1, 0.85, 0.6, effect.life / 0.18), 3)
+
+func draw_secondary_vfx() -> void:
+	var now: float = run_time
+	# Projectile silhouettes get a proper glow, directional trail and a distinct shape.
+	for bullet in combat.friendly:
+		var secondary_id: String = String(bullet.get("secondary_id", ""))
+		if secondary_id == "":
+			continue
+		var direction: Vector2 = bullet.velocity.normalized()
+		var side: Vector2 = Vector2(-direction.y, direction.x)
+		var pulse: float = 0.82 + sin(now * 18.0 + bullet.position.x * 0.01) * 0.18
+		if secondary_id == "boomerang":
+			for trail_index in range(4):
+				var trail_pos: Vector2 = bullet.position - direction * (trail_index + 1) * 14.0
+				draw_circle(trail_pos, 10.0 - trail_index * 1.7, Color(0.33, 0.92, 0.84, 0.16 - trail_index * 0.03))
+			draw_colored_polygon(PackedVector2Array([bullet.position + direction * 16.0, bullet.position + side * 7.0, bullet.position - direction * 12.0, bullet.position - side * 7.0]), Color("bffff5", pulse))
+			draw_line(bullet.position - side * 5.0, bullet.position + direction * 12.0 + side * 4.0, Color("55ebd2"), 3.0)
+		elif secondary_id == "drone":
+			for trail_index in range(3):
+				draw_circle(bullet.position - direction * trail_index * 11.0, 7.0 - trail_index * 1.5, Color(1.0, 0.82, 0.35, 0.22 - trail_index * 0.05))
+			draw_circle(bullet.position, 9.0, Color("ffd166", 0.28))
+			draw_colored_polygon(PackedVector2Array([bullet.position + direction * 12.0, bullet.position + side * 6.0, bullet.position - direction * 8.0, bullet.position - side * 6.0]), Color("fff1b0"))
+	# Orbit blades are persistent animated objects, not just a damage ring.
+	var orbit_level: int = int(secondary_weapons.get("orbit", 0))
+	if orbit_level > 0:
+		var orbit_radius: float = 82.0 + orbit_level * 12.0
+		var blade_count: int = 2 + int(orbit_level / 2)
+		for blade_index in range(blade_count):
+			var angle: float = now * (1.8 + orbit_level * 0.12) + TAU * blade_index / blade_count
+			var blade_pos: Vector2 = player.position + Vector2.from_angle(angle) * orbit_radius
+			var tangent: Vector2 = Vector2.from_angle(angle + PI * 0.5)
+			draw_circle(blade_pos, 17.0, Color(0.72, 0.55, 1.0, 0.10))
+			draw_colored_polygon(PackedVector2Array([blade_pos + tangent * 13.0, blade_pos + Vector2.from_angle(angle) * 9.0, blade_pos - tangent * 13.0, blade_pos - Vector2.from_angle(angle) * 9.0]), Color("d9c5ff"))
+			draw_line(blade_pos - tangent * 8.0, blade_pos + tangent * 8.0, Color("b78cff"), 3.0)
+		draw_arc(player.position, orbit_radius, now, now + PI * 0.65, 20, Color(0.72, 0.55, 1.0, 0.25), 2.0)
+	# The drone has a visible companion chassis and a soft lock-on tether.
+	var drone_level: int = int(secondary_weapons.get("drone", 0))
+	if drone_level > 0:
+		var drone_angle: float = now * 1.35
+		var drone_pos: Vector2 = player.position + Vector2.from_angle(drone_angle) * (54.0 + drone_level * 3.0) + Vector2(0, -18)
+		draw_circle(drone_pos, 25.0, Color(1.0, 0.82, 0.35, 0.08))
+		draw_arc(drone_pos, 17.0, drone_angle, drone_angle + PI * 1.5, 20, Color("ffd166", 0.9), 3.0)
+		draw_colored_polygon(PackedVector2Array([drone_pos + Vector2(0, -11), drone_pos + Vector2(13, 8), drone_pos, drone_pos + Vector2(-13, 8)]), Color("ffe8a3"))
+		draw_circle(drone_pos + Vector2(0, -2), 4.0 + sin(now * 10.0) * 1.2, Color("fff8d6"))
+		var drone_target: Node2D = nearest_enemy()
+		if drone_target != null:
+			var lock_pulse: float = 0.75 + sin(now * 12.0) * 0.25
+			draw_dashed_line(drone_pos, drone_target.position, Color(1.0, 0.82, 0.35, 0.30), 2.0, 8.0)
+			draw_arc(drone_target.position, 28.0 + sin(now * 8.0) * 3.0, 0, TAU, 24, Color(1.0, 0.82, 0.35, lock_pulse), 2.0)
+			draw_line(drone_target.position - Vector2(38, 0), drone_target.position - Vector2(22, 0), Color("ffd166", lock_pulse), 2.0)
+			draw_line(drone_target.position + Vector2(22, 0), drone_target.position + Vector2(38, 0), Color("ffd166", lock_pulse), 2.0)

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "secondary_orbit"
+title_vi = "Vệ tinh quỹ đạo"
+title_en = "Orbit Blades"
+description_vi = "Lưỡi năng lượng xoay quanh Player, quét sát thương vùng liên tục."
+description_en = "Energy blades orbit the Player and sweep nearby enemies."
+stat = "secondary"
+limit = 5
+core_type = "weapon"
+weapon_id = "orbit"

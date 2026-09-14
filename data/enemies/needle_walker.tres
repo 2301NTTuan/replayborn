@@ -2,11 +2,11 @@
 [ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1"]
 [resource]
 script = ExtResource("1")
-id = "boss_hunter"
-title_vi = "Thợ Săn Hoàng Hôn"
-title_en = "Dusk Hunter"
-health = 80.0
-speed = 88.0
-radius = 66.0
-damage = 27
-tint = Color(1, 0.55, 0.25, 1)
+id = "needle_walker"
+title_vi = "Tháp Kim Di Động"
+title_en = "needle walker"
+family = 5
+health = 5
+speed = 90.0
+radius = 25.0
+damage = 10

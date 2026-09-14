@@ -125,7 +125,8 @@ func bind_game(owner_game: Node) -> void:
 	xp_progress.show_percentage = false
 	root_control.add_child(xp_progress)
 	pause_button = UI.button(root_control, t("pause"), game.toggle_pause)
-	pause_button.position = Vector2(812, 43)
+	# Align the pause block with the gold resource card above it.
+	pause_button.position = Vector2(812, 38)
 	pause_button.size = Vector2(164, 82)
 	pause_button.text = "Ⅱ  " + t("pause")
 	joystick = Joystick.new()
@@ -214,7 +215,7 @@ func refresh() -> void:
 	health_label.text = "%d / %d" % [ceili(game.health), int(game.max_health)]
 	health_bar.max_value = game.max_health
 	health_bar.value = game.health
-	echo_label.text = "REC  %04.1fs / 15s   •   ECHO %d/4" % [game.recorder.tick / 60.0, game.echoes.size()]
+	echo_label.text = "REC  %04.1fs / 15s   •   ECHO %d/1" % [game.recorder.tick / 60.0, game.echoes.size()]
 	xp_label.text = "LV.%02d  •  EXP %d/%d" % [game.run_level, game.run_xp, game.xp_to_next]
 	progress.value = game.recorder.tick
 	xp_progress.max_value = game.xp_to_next
@@ -295,6 +296,8 @@ func show_upgrades(offers: Array) -> void:
 		var english: bool = game.profile.data.language == "en"
 		var title: String = item.title_en if english else item.title_vi
 		var description: String = item.description_en if english else item.description_vi
+		if item.core_type == "weapon":
+			description += "  " + "★".repeat(game.upgrade_counts.get(item.id, 0) + 1)
 		var offer := UI.card(body, accents[index % accents.size()])
 		var offer_panel := offer.get_parent() as PanelContainer
 		offer_panel.modulate.a = 0.0

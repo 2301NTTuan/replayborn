@@ -7,3 +7,5 @@ extends Resource
 @export var stat: String
 @export var amount: float
 @export var limit: int = 5
+@export var core_type: String = "stat"
+@export var weapon_id: String = ""

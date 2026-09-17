@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "scatter_shrapnel"
+title_vi = "Mảnh vỡ"
+title_en = "Scatter Shrapnel"
+description_vi = "Kẻ địch bị kết liễu phát nổ hiệu ứng mảnh vỡ."
+description_en = "Finisher kills release a capped shrapnel burst."
+stat = "scatter_shrapnel"
+amount = 1.0
+limit = 1

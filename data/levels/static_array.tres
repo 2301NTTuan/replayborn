@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/level_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "static_array"
+title_vi = "Mảng Tĩnh"
+title_en = "Static Array"
+duration = 95.0
+enemy_indices = [1, 2, 3]
+boss_index = 7
+elite_chance = 0.13

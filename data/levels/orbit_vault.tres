@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/level_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "orbit_vault"
+title_vi = "Hầm Quỹ Đạo"
+title_en = "Orbit Vault"
+duration = 95.0
+enemy_indices = [2, 3, 4]
+boss_index = 8
+elite_chance = 0.18

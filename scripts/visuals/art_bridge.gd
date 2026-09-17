@@ -15,7 +15,7 @@ func _dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant
     return source[key] if source.has(key) else fallback
 
 func setup() -> void:
-    attach_player(game.player, int(game.profile.data.character))
+    attach_player(game.player, 0)
     setup_map(String(game.map_data.id))
     # Projectiles are procedural so the release does not depend on pack assets
     # whose commercial license has not been established.
@@ -58,22 +58,6 @@ func attach_player(player: Node2D, index: int) -> void:
     # The vertical slice ships Astria only; future character art remains outside
     # the release runtime until it has gameplay support and clearance.
 
-func _attach_equipment_overlays(player: Node2D) -> void:
-    var rarity_names := ["common", "rare", "legendary", "mythic", "ancient"]
-    var slots := [["ÁO", "shirt"], ["QUẦN", "pants"], ["GIÀY", "boots"], ["GIÁP", "armor"], ["VŨ KHÍ", "weapon"]]
-    for entry in slots:
-        var item: Dictionary = _dict_value(player.equipment, entry[0], {})
-        if item.is_empty():
-            continue
-        var rarity := clampi(int(_dict_value(item, "rarity", 0)), 0, 4)
-        var overlay := Sprite2D.new()
-        overlay.name = "Equip_%s" % entry[1]
-        overlay.texture = load("res://assets/replayborn/equipment/overlays/%s/%s.png" % [rarity_names[rarity], entry[1]])
-        overlay.position = Vector2(0, -4)
-        overlay.scale = Vector2(0.82, 0.82)
-        overlay.z_index = 11
-        player.add_child(overlay)
-
 func update_player(player: Node2D) -> void:
     var visual := player.get_node_or_null("ArtVisual") as Node2D
     if visual == null:
@@ -97,21 +81,18 @@ func get_anime_enemy_frames(id: String) -> SpriteFrames:
         return null
     var frames := SpriteFrames.new()
     frames.remove_animation(&"default")
-    frames.add_animation(&"idle")
-    frames.set_animation_speed(&"idle", 1.0)
-    frames.set_animation_loop(&"idle", true)
-    frames.add_animation(&"run")
-    frames.set_animation_speed(&"run", 10.0)
-    frames.set_animation_loop(&"run", true)
     var frame_width: float = texture.get_width() / 4.0
     var frame_height: float = texture.get_height()
-    for index in range(4):
-        var atlas := AtlasTexture.new()
-        atlas.atlas = texture
-        atlas.region = Rect2(frame_width * index, 0, frame_width, frame_height)
-        frames.add_frame(&"run", atlas)
-        if index == 0:
-            frames.add_frame(&"idle", atlas)
+    var poses := {"idle": [0], "run": [0, 1, 2, 3], "windup": [1], "attack": [2], "hurt": [3], "death": [3]}
+    for state in poses:
+        frames.add_animation(state)
+        frames.set_animation_speed(state, 10.0 if state == "run" else 5.0)
+        frames.set_animation_loop(state, state in ["idle", "run"])
+        for index in poses[state]:
+            var atlas := AtlasTexture.new()
+            atlas.atlas = texture
+            atlas.region = Rect2(frame_width * index, 0, frame_width, frame_height)
+            frames.add_frame(state, atlas)
     anime_enemy_frames[id] = frames
     return frames
 
@@ -162,16 +143,15 @@ func update_enemy(enemy: Node2D) -> void:
     var sprite := visual as AnimatedSprite2D
     if sprite == null:
         return
-    if enemy.spec.family >= 0 or String(enemy.spec.id).begins_with("boss_"):
-        var wanted: StringName = &"hurt" if enemy.flash > 0 and not enemy.dead else enemy.animation_state
-        if sprite.animation != wanted:
-            sprite.play(wanted)
-        sprite.modulate = Color("ff8585") if wanted == &"hurt" else Color.WHITE
-        if enemy.dead:
-            sprite.modulate.a = clampf(enemy.death_left / 0.42, 0.0, 1.0)
-        elif enemy.spawn_protection > 0:
-            var spawn_duration := 2.0 if String(enemy.spec.id).begins_with("boss_") else 0.7
-            sprite.modulate.a = clampf(1.0 - enemy.spawn_protection / spawn_duration, 0.15, 1.0)
+    var wanted: StringName = &"hurt" if enemy.flash > 0 and not enemy.dead else enemy.animation_state
+    if sprite.sprite_frames.has_animation(wanted) and sprite.animation != wanted:
+        sprite.play(wanted)
+    sprite.modulate = Color("ff8585") if wanted == &"hurt" else Color.WHITE
+    if enemy.dead:
+        sprite.modulate.a = clampf(enemy.death_left / 0.42, 0.0, 1.0)
+    elif enemy.spawn_protection > 0:
+        var spawn_duration := 2.0 if String(enemy.spec.id).begins_with("boss_") else 0.7
+        sprite.modulate.a = clampf(1.0 - enemy.spawn_protection / spawn_duration, 0.15, 1.0)
     if not enemy.dead and is_instance_valid(enemy.target):
         sprite.flip_h = enemy.target.position.x < enemy.position.x
 
@@ -217,31 +197,6 @@ func roster_frames(family: int) -> SpriteFrames:
             frames.add_frame(state, atlas)
     anime_enemy_frames[key] = frames
     return frames
-
-func attach_echo(echo: Node2D) -> void:
-    if echo.has_node("ArtVisual"):
-        return
-    var sprite := AnimatedSprite2D.new()
-    sprite.name = "ArtVisual"
-    sprite.sprite_frames = load("res://assets/original_v1/astria_sprite_frames.tres")
-    sprite.position = Vector2(0, -24)
-    sprite.scale = Vector2(0.13, 0.13)
-    sprite.modulate = Color(echo.tint, 0.78)
-    sprite.z_index = 7
-    echo.add_child(sprite)
-    sprite.play("idle")
-
-func update_echo(echo: Node2D) -> void:
-    var sprite := echo.get_node_or_null("ArtVisual") as AnimatedSprite2D
-    if sprite == null:
-        return
-    var moving: bool = echo.motion.length_squared() > 1.0
-    var wanted := &"run" if moving else &"idle"
-    if sprite.animation != wanted:
-        sprite.play(wanted)
-    if absf(echo.motion.x) > 1.0:
-        sprite.flip_h = echo.motion.x < 0.0
-    sprite.modulate = Color(echo.tint, 0.78) if echo.hurt_time <= 0.0 or fmod(echo.hurt_time * 30.0, 2.0) >= 1.0 else Color("ff4b61")
 
 func setup_map(map_id: String) -> void:
     map_root = Node2D.new()

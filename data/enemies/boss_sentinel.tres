@@ -3,8 +3,8 @@
 [resource]
 script = ExtResource("1")
 id = "boss_sentinel"
-title_vi = "Kỵ Sĩ Phán Xét"
-title_en = "Judgment Sentinel"
+title_vi = "Lính Gác Mảng"
+title_en = "Array Sentinel"
 health = 110.0
 speed = 68.0
 radius = 70.0

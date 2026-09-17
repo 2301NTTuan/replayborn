@@ -12,15 +12,14 @@ func _initialize() -> void:
 func run() -> void:
 	var profile = root.get_node("Profile")
 	profile.practice = true
-	profile.selected_weapon = 0
 	profile.data.weapon = 0
 	var game = load("res://scenes/main.tscn").instantiate()
 	game.test_mode = true
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame
-	check(game.Catalog.UPGRADES.size() == 15 and game.Catalog.WEAPONS.size() == 3 and game.Catalog.MAPS.size() >= 1, "content counts")
-	check(game.profile.data.character == 0 and game.map_data == game.Catalog.MAPS[0], "vertical slice locks Astria and Neon Ruins")
+	check(game.Catalog.UPGRADES.size() == 18 and game.Catalog.WEAPONS.size() == 3 and game.Catalog.MAPS.size() == 1, "content counts")
+	check(game.map_data == game.Catalog.MAPS[0], "vertical slice locks Neon Ruins")
 	game.sound.set_levels(0, 0)
 	game.director.spawn_left = INF
 	var before: Vector2 = game.player.position
@@ -39,32 +38,7 @@ func run() -> void:
 	game.combat.fire_left = 0
 	var shots: Array = game.combat.fire(enemy, 1.0 / 60)
 	check(shots.size() == 1, "pulse single shot")
-	var recorded_damage: float = shots[0].damage
-	game.recorder.begin(Vector2(300, 500))
-	for tick in range(900):
-		game.recorder.record(Vector2(300 + tick * 0.2, 500), shots if tick == 0 or tick == 899 else [])
-	var snapshot: Dictionary = game.recorder.snapshot()
-	check(snapshot.positions.size() == 901 and snapshot.shots.size() == 2, "900 ticks including final shot")
-	game.create_echo()
-	var echo = game.echoes[0]
-	game.combat.friendly.clear()
-	game.stats.damage = 99
-	echo.advance()
-	check(game.combat.friendly.size() == 1, "first replay tick fires")
-	check(is_equal_approx(game.combat.friendly[0].damage, recorded_damage), "snapshot damage unaffected by later upgrade")
-	var echo_finished: bool = false
-	for tick in range(899):
-		echo_finished = echo.advance()
-	check(not echo_finished and echo.tick == 0 and game.combat.friendly.size() == 2, "echo loops after one 15s replay")
-	for index in range(3):
-		game.create_echo()
-	check(game.echoes.size() == 4, "four echoes coexist")
-	var oldest = game.echoes[0]
-	game.create_echo()
-	check(game.echoes.size() == 4 and oldest.is_queued_for_deletion(), "fifth echo replaces oldest")
-	game.echoes[0].dead = true
-	game._physics_process(1.0 / 60.0)
-	check(game.echoes.size() == 3, "dead echo safely removed")
+	check(game.circuit.points.size() >= 1 and game.circuits_closed == 0, "time circuit starts with one sampled point")
 	# Sweep test: fast bullets cannot tunnel through a target.
 	game.combat.friendly.clear()
 	enemy.health = 1

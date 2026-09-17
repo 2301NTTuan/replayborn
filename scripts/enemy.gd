@@ -28,6 +28,9 @@ var skill_tertiary: float = 4.6
 var dash_time: float = 0.0
 var dash_vector: Vector2 = Vector2.ZERO
 var boss_target_range: float = 720.0
+var time_lock_left: float = 0.0
+var circuit_exposed: float = 0.0
+var sentinel_nodes: PackedVector2Array = PackedVector2Array([Vector2(-105, -18), Vector2(78, -82), Vector2(94, 78)])
 
 func setup(data: Resource, owner_game: Node, variant: int, difficulty: float) -> void:
 	spec = data
@@ -36,11 +39,11 @@ func setup(data: Resource, owner_game: Node, variant: int, difficulty: float) ->
 	elite = variant
 	var durability: float = game.enemy_durability_multiplier()
 	if String(data.id).begins_with("boss_"):
-		durability *= 1.22
-	health = data.health * difficulty * durability * (2.3 if elite > 0 else 1.0)
+		durability *= 1.10
+	health = data.health * difficulty * durability * (2.3 if elite == 1 else (1.35 if elite == 2 else 1.0))
 	max_health = health
 	radius = data.radius * (1.2 if elite > 0 else 1.0)
-	speed = data.speed * (1.3 if elite == 1 else 1.0)
+	speed = data.speed * (1.28 if elite == 2 else 1.0)
 	contact_damage = maxi(1, roundi(data.damage * (0.72 + (difficulty - 1.0) * 0.34))) + (3 if elite > 0 else 0)
 	if String(data.id).begins_with("boss_"):
 		boss_target_range = 620.0 + float(_boss_rank()) * 85.0
@@ -53,8 +56,14 @@ func advance(delta: float) -> void:
 		queue_redraw()
 		return
 	flash = maxf(0, flash - delta)
+	circuit_exposed = maxf(0.0, circuit_exposed - delta)
 	if spawn_protection > 0:
 		spawn_protection -= delta
+		queue_redraw()
+		return
+	if time_lock_left > 0.0:
+		time_lock_left = maxf(0.0, time_lock_left - delta)
+		animation_state = &"hurt"
 		queue_redraw()
 		return
 	cycle += delta
@@ -94,14 +103,31 @@ func advance(delta: float) -> void:
 	position = position.clamp(game.ARENA.position + Vector2.ONE * radius, game.ARENA.end - Vector2.ONE * radius)
 	queue_redraw()
 
+func apply_circuit(polygon: PackedVector2Array = PackedVector2Array()) -> void:
+	match String(spec.id):
+		"boss_warden": circuit_exposed = 4.0
+		"boss_hunter":
+			dash_time = 0.0
+			circuit_exposed = 2.0
+		"boss_sentinel":
+			var enclosed: int = 0
+			for offset in sentinel_nodes:
+				if polygon.is_empty() or Geometry2D.is_point_in_polygon(position + offset, polygon):
+					enclosed += 1
+			if enclosed >= 2:
+				skill_primary += 1.8
+				skill_secondary += 1.8
+				circuit_exposed = 3.0
+			else:
+				circuit_exposed = 0.8
+		"boss_reaper": circuit_exposed = 2.5
+		"boss_archon": circuit_exposed = 2.0
+
 func select_target() -> void:
 	if game == null or not is_instance_valid(game.player):
 		return
 	var is_boss := String(spec.id).begins_with("boss_")
 	var candidates: Array[Node2D] = [game.player]
-	for echo in game.echoes:
-		if is_instance_valid(echo) and not echo.dead:
-			candidates.append(echo)
 	var nearest: Node2D = null
 	var nearest_distance := INF
 	for candidate in candidates:
@@ -161,6 +187,7 @@ func _advance_boss(delta: float, direction: Vector2) -> void:
 				dash_vector = direction.rotated(0.35 if orbit_sign > 0 else -0.35)
 				dash_time = 0.7
 				_boss_ring(14, 290.0, 18)
+				game.combat.add_enemy_zone({"position": target.position, "radius": 120.0, "delay": 0.85, "duration": 0.35, "damage": 18, "age": 0.0, "hit": false})
 			"boss_archon":
 				_boss_ring(24, 255.0, 20)
 				_boss_fan(direction, 9, 0.13, 380.0, 20)
@@ -202,7 +229,11 @@ func _draw() -> void:
 		if spec.id == "charger" and cycle >= 1.6 and cycle < 2.3:
 			draw_line(Vector2.ZERO, dash_direction * 310, Color(0.8, 0.5, 1, 0.65), 5)
 		if elite > 0:
-			draw_arc(Vector2.ZERO, radius + 7, 0, TAU, 24, Color("ffe6a0") if elite == 1 else Color("a4ffff"), 3)
+			draw_arc(Vector2.ZERO, radius + 7, 0, TAU, 24, Color("ffe6a0") if elite == 1 else Color("ff63b8"), 3)
+		if String(spec.id) == "boss_sentinel":
+			for offset in sentinel_nodes:
+				draw_circle(offset, 13.0, Color("6ff6ff", 0.24))
+				draw_arc(offset, 13.0, 0.0, TAU, 18, Color("9ffcff"), 3.0)
 		if health < max_health:
 			draw_line(Vector2(-radius, -radius - 13), Vector2(radius, -radius - 13), Color("28334a"), 4)
 			draw_line(Vector2(-radius, -radius - 13), Vector2(-radius + radius * 2 * health / max_health, -radius - 13), Color("ffbac4"), 4)
@@ -226,7 +257,7 @@ func _draw() -> void:
 		_:
 			draw_rect(Rect2(-radius, -radius, radius * 2, radius * 2), tint)
 	if elite > 0:
-		draw_arc(Vector2.ZERO, radius + 7, 0, TAU, 24, Color("ffe6a0") if elite == 1 else Color("a4ffff"), 3)
+		draw_arc(Vector2.ZERO, radius + 7, 0, TAU, 24, Color("ffe6a0") if elite == 1 else Color("ff63b8"), 3)
 	if health < max_health:
 		draw_line(Vector2(-radius, -radius - 13), Vector2(radius, -radius - 13), Color("28334a"), 4)
 		draw_line(Vector2(-radius, -radius - 13), Vector2(-radius + radius * 2 * health / max_health, -radius - 13), Color("ffbac4"), 4)

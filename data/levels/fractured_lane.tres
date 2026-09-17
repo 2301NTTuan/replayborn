@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/level_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "fractured_lane"
+title_vi = "Làn Nứt Vỡ"
+title_en = "Fractured Lane"
+duration = 95.0
+enemy_indices = [0, 1, 2]
+boss_index = 6
+elite_chance = 0.10

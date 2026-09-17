@@ -29,9 +29,11 @@ func run() -> void:
 	check(game.player.touch_direction.x > 0.9 and joystick.center == Vector2(150, 1630), "dynamic touch direction")
 	game.toggle_pause()
 	check(paused and joystick.finger == -1 and game.player.touch_direction == Vector2.ZERO, "pause clears touch")
+	var circuit_points: int = game.circuit.points.size()
 	var tick: int = game.run_tick
 	await create_timer(0.1).timeout
 	check(tick == game.run_tick, "pause freezes simulation")
+	check(game.circuit.points.size() == circuit_points, "pause does not record circuit trail")
 	game.toggle_pause()
 	await create_timer(0.1).timeout
 	check(game.run_tick > tick, "resume advances")
@@ -39,30 +41,25 @@ func run() -> void:
 	check(paused, "focus loss pauses")
 	game.toggle_pause()
 	game.offer_upgrades()
+	circuit_points = game.circuit.points.size()
 	game.toggle_pause()
 	check(paused and game.state == game.State.UPGRADE, "ESC cannot bypass upgrade")
+	check(game.circuit.points.size() == circuit_points, "upgrade overlay does not record trail")
 	game.apply_upgrade(0)
 	check(not paused, "upgrade selection resumes")
 	game.sound.set_levels(0, 0)
 	check(game.sound.muted, "mute")
-	# Meta progression: equipment upgrade, free chest and paid chest economy.
+	# Meta progression is deterministic and contains no chest/payment economy.
 	var economy = load("res://scripts/core/profile.gd").new()
 	economy.save_path = "user://qa_economy_" + str(Time.get_ticks_usec()) + ".json"
 	root.add_child(economy)
-	economy.data.shards["ÁO"] = 100
-	economy.data.upgrade_core = 100
-	check(economy.upgrade_equipment("ÁO"), "equipment upgrade")
-	check(economy.data.equipment["ÁO"].level == 2, "equipment level")
-	var chest: Dictionary = economy.open_chest("GIÀY", 2, false)
-	check(not chest.is_empty() and economy.data.shards["GIÀY"] > 10, "free chest")
 	economy.data.gold = 10000
-	var paid: Dictionary = economy.open_chest("VŨ KHÍ", 3, true)
-	check(not paid.is_empty() and paid.rarity == 3, "paid mythic chest")
-	economy.data.gold = 0
-	economy.data.chests["CỔ ĐẠI"].last_free = "used"
-	economy.data.chests["CỔ ĐẠI"].last_day = Time.get_unix_time_from_system() / 86400
-	check(economy.open_chest_with_priority("ÁO", 4).status == "insufficient_gold", "no payment fallback")
-	economy.queue_free()
+	economy.data.upgrade_core = 100
+	check(economy.upgrade_meta("hp"), "meta upgrade")
+	check(economy.data.meta_upgrades.hp == 1, "meta level advances")
+	economy.finish_run(true, 600.0, 30, 120, 12, 5)
+	check(economy.data.weapon_unlocks[1] and economy.data.weapon_unlocks[2], "gameplay unlocks both weapons")
+	economy.free()
 	# Test storage with an isolated path; never overwrite the real player profile.
 	var store = load("res://scripts/core/profile.gd").new()
 	store.save_path = "user://qa_profile_" + str(Time.get_ticks_usec()) + ".json"
@@ -79,18 +76,21 @@ func run() -> void:
 	store.load_profile()
 	check(is_equal_approx(store.data.volume, 0.25) and store.warning == "save_recovered", "backup recovery")
 	store.data = store.defaults()
-	store.data.equipment = {"ÁO": {"id": 3}}
-	store.data.shards = {"ÁO": "bad"}
-	store.data.chests = {"THƯỜNG": {}}
-	store.data.missions = {"kills": "bad"}
+	store.data.meta_upgrades = {"hp": "bad"}
+	store.data.weapon_unlocks = [true, "bad"]
 	check(store.save_profile() == OK, "save malformed fixture")
 	store.load_profile()
-	check(store.data.equipment.has("GIÀY") and store.data.shards["ÁO"] is int, "malformed nested save is sanitized")
+	check(store.data.meta_upgrades.hp is int and store.data.weapon_unlocks[1] is bool, "malformed nested save is sanitized")
+	var legacy: Dictionary = store.defaults()
+	legacy.version = 1
+	legacy.erase("weapon_unlocks")
+	var migrated: Dictionary = store.sanitize_profile(store.migrate_profile(legacy))
+	check(migrated.version == 2 and migrated.weapon_unlocks.size() == 3, "schema 1 migrates to schema 2")
 	for suffix in ["", ".bak", ".tmp"]:
 		if FileAccess.file_exists(store.save_path + suffix):
 			DirAccess.remove_absolute(store.save_path + suffix)
-	store.queue_free()
-	game.queue_free()
+	store.free()
+	game.free()
 	await process_frame
 	await create_timer(0.2).timeout
 	print("SESSION CHECKS: ", "PASS" if failures == 0 else "FAIL")

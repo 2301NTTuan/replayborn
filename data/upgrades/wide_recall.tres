@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "wide_recall"
+title_vi = "Hồi tưởng rộng"
+title_en = "Wide Recall"
+description_vi = "Tăng vùng báo khép mạch 5 px."
+description_en = "Increases closure assistance by 5 px."
+stat = "snap_radius"
+amount = 5.0
+limit = 4

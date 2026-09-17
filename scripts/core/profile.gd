@@ -1,74 +1,48 @@
 extends Node
 
 signal settings_changed
-const SCHEMA: int = 1
-const RARITIES: Array = ["THƯỜNG", "HIẾM", "HUYỀN THOẠI", "MYTHIC", "CỔ ĐẠI"]
-const SLOTS: Array = ["ÁO", "QUẦN", "GIÀY", "GIÁP", "VŨ KHÍ"]
+
+const SCHEMA: int = 2
+const META_STATS: Array[String] = ["hp", "damage", "armor", "haste"]
+const META_MAX_LEVEL: int = 10
+
 var save_path: String = "user://profile.json"
 var data: Dictionary = defaults()
 var warning: String = ""
-var selected_weapon: int = 0
 var practice: bool = false
-
-func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
-	return source[key] if source.has(key) else fallback
 
 func _ready() -> void:
 	load_profile()
 
 func defaults() -> Dictionary:
-	return {"version": SCHEMA, "volume": 0.65, "music": 0.35, "reduced": false, "language": "vi", "tutorial": false, "runs": 0, "wins": 0, "kills": 0, "best_seconds": 0.0, "palette": 0, "weapon": 0, "character": 0, "map": 0, "gold": 500, "upgrade_core": 25, "meta_upgrades": {"hp": 0, "damage": 0, "armor": 0, "haste": 0}, "equipment": default_equipment(), "shards": default_shards(), "chests": default_chests(), "missions": {"kills": 0, "wins": 0, "claimed_kills": false, "claimed_wins": false}}
-
-func default_equipment() -> Dictionary:
-	var result := {}
-	for slot in SLOTS:
-		result[slot] = {"id": "starter_" + slot, "rarity": 0, "level": 1, "shards": 0, "equipped": true}
-	return result
-
-func default_shards() -> Dictionary:
-	var result := {}
-	for slot in SLOTS:
-		result[slot] = 10
-	return result
-
-func default_chests() -> Dictionary:
-	return {"THƯỜNG": {"free_days": 1, "last_free": "", "gold": 100}, "HIẾM": {"free_days": 2, "last_free": "", "gold": 250}, "HUYỀN THOẠI": {"free_days": 4, "last_free": "", "gold": 600}, "MYTHIC": {"free_days": 7, "last_free": "", "gold": 1500}, "CỔ ĐẠI": {"free_days": 14, "last_free": "", "gold": 3500}}
+	return {
+		"version": SCHEMA,
+		"language": "vi",
+		"tutorial": false,
+		"volume": 0.65,
+		"music": 0.35,
+		"sfx": 0.75,
+		"reduced": false,
+		"shake": true,
+		"haptics": true,
+		"contrast": false,
+		"runs": 0,
+		"wins": 0,
+		"kills": 0,
+		"best_seconds": 0.0,
+		"gold": 500,
+		"upgrade_core": 25,
+		"weapon": 0,
+		"weapon_unlocks": [true, false, false],
+		"meta_upgrades": {"hp": 0, "damage": 0, "armor": 0, "haste": 0},
+		"stats": {"circuits": 0, "captured": 0, "bosses": 0}
+	}
 
 func safe_int(value: Variant, fallback: int, minimum: int = 0, maximum: int = 2147483647) -> int:
 	return clampi(int(value), minimum, maximum) if value is int or value is float else fallback
 
-func sanitize_nested_data() -> void:
-	var equipment_defaults := default_equipment()
-	var shard_defaults := default_shards()
-	var chest_defaults := default_chests()
-	if not data.equipment is Dictionary:
-		data.equipment = {}
-	if not data.shards is Dictionary:
-		data.shards = {}
-	if not data.chests is Dictionary:
-		data.chests = {}
-	if not data.missions is Dictionary:
-		data.missions = {}
-	for slot in SLOTS:
-		var raw_item: Variant = dict_value(data.equipment, slot, {})
-		var item: Dictionary = raw_item if raw_item is Dictionary else {}
-		var fallback: Dictionary = equipment_defaults[slot]
-		data.equipment[slot] = {"id": str(dict_value(item, "id", fallback.id)), "rarity": safe_int(dict_value(item, "rarity", 0), 0, 0, RARITIES.size() - 1), "level": safe_int(dict_value(item, "level", 1), 1, 1, 20), "shards": safe_int(dict_value(item, "shards", 0), 0), "equipped": bool(dict_value(item, "equipped", true))}
-		data.shards[slot] = safe_int(dict_value(data.shards, slot, shard_defaults[slot]), shard_defaults[slot])
-	for rarity in RARITIES:
-		var raw_chest: Variant = dict_value(data.chests, rarity, {})
-		var chest: Dictionary = raw_chest if raw_chest is Dictionary else {}
-		var fallback_chest: Dictionary = chest_defaults[rarity]
-		data.chests[rarity] = {"free_days": safe_int(dict_value(chest, "free_days", fallback_chest.free_days), fallback_chest.free_days, 1, 365), "last_free": str(dict_value(chest, "last_free", "")), "last_day": safe_int(dict_value(chest, "last_day", 0), 0), "gold": safe_int(dict_value(chest, "gold", fallback_chest.gold), fallback_chest.gold)}
-	data.missions = {"kills": safe_int(dict_value(data.missions, "kills", 0), 0), "wins": safe_int(dict_value(data.missions, "wins", 0), 0), "claimed_kills": bool(dict_value(data.missions, "claimed_kills", false)), "claimed_wins": bool(dict_value(data.missions, "claimed_wins", false))}
-
-func valid_profile(value: Variant) -> bool:
-	if not value is Dictionary or value.get("version") != SCHEMA:
-		return false
-	for key in ["volume", "music", "runs", "wins", "kills", "best_seconds"]:
-		if not (value.get(key) is float or value.get(key) is int):
-			return false
-	return value.get("language") in ["vi", "en"] and value.get("reduced") is bool and value.get("tutorial") is bool
+func safe_float(value: Variant, fallback: float, minimum: float = 0.0, maximum: float = 1.0) -> float:
+	return clampf(float(value), minimum, maximum) if value is int or value is float else fallback
 
 func read_profile(path: String) -> Variant:
 	if not FileAccess.file_exists(path):
@@ -81,41 +55,62 @@ func read_profile(path: String) -> Variant:
 		return null
 	return parser.data
 
+func is_profile_candidate(value: Variant) -> bool:
+	if not value is Dictionary:
+		return false
+	var version: Variant = value.get("version")
+	return (version is int or version is float) and int(version) in [1, SCHEMA]
+
+func migrate_profile(source: Dictionary) -> Dictionary:
+	var migrated: Dictionary = source.duplicate(true)
+	if safe_int(migrated.get("version", 1), 1) == 1:
+		migrated.version = SCHEMA
+		migrated.weapon_unlocks = [true, safe_int(migrated.get("wins", 0), 0) > 0, safe_int(migrated.get("wins", 0), 0) > 0]
+		migrated.stats = {"circuits": 0, "captured": 0, "bosses": 0}
+	return migrated
+
+func sanitize_profile(source: Dictionary) -> Dictionary:
+	var result: Dictionary = defaults()
+	result.language = str(source.get("language", result.language)) if str(source.get("language", "vi")) in ["vi", "en"] else "vi"
+	for key in ["tutorial", "reduced", "shake", "haptics", "contrast"]:
+		result[key] = source.get(key, result[key]) if source.get(key, result[key]) is bool else result[key]
+	for key in ["volume", "music", "sfx"]:
+		result[key] = safe_float(source.get(key, result[key]), result[key])
+	for key in ["runs", "wins", "kills", "gold", "upgrade_core"]:
+		result[key] = safe_int(source.get(key, result[key]), result[key], 0, 100000000)
+	result.best_seconds = safe_float(source.get("best_seconds", 0.0), 0.0, 0.0, 86400.0)
+	var raw_meta: Variant = source.get("meta_upgrades", {})
+	var meta: Dictionary = raw_meta if raw_meta is Dictionary else {}
+	for stat in META_STATS:
+		result.meta_upgrades[stat] = safe_int(meta.get(stat, 0), 0, 0, META_MAX_LEVEL)
+	var raw_unlocks: Variant = source.get("weapon_unlocks", [true, false, false])
+	if raw_unlocks is Array:
+		for index in range(1, mini(3, raw_unlocks.size())):
+			result.weapon_unlocks[index] = raw_unlocks[index] if raw_unlocks[index] is bool else false
+	result.weapon_unlocks[0] = true
+	result.weapon = safe_int(source.get("weapon", 0), 0, 0, 2)
+	if not result.weapon_unlocks[result.weapon]:
+		result.weapon = 0
+	var raw_stats: Variant = source.get("stats", {})
+	var statistics: Dictionary = raw_stats if raw_stats is Dictionary else {}
+	for key in ["circuits", "captured", "bosses"]:
+		result.stats[key] = safe_int(statistics.get(key, 0), 0, 0, 100000000)
+	return result
+
 func load_profile() -> void:
 	warning = ""
-	data = defaults()
 	var loaded: Variant = read_profile(save_path)
-	if not valid_profile(loaded):
+	if not is_profile_candidate(loaded):
 		loaded = read_profile(save_path + ".bak")
 		if FileAccess.file_exists(save_path):
-			warning = "save_recovered" if valid_profile(loaded) else "save_reset"
-	if valid_profile(loaded):
-		for key in data:
-			data[key] = dict_value(loaded, key, data[key])
-		data.volume = clampf(data.volume, 0, 1)
-		data.music = clampf(data.music, 0, 1)
-		for key in ["runs", "wins", "kills"]:
-			data[key] = clampi(int(data[key]), 0, 100000000)
-		data.best_seconds = clampf(data.best_seconds, 0, 86400)
-		data.palette = clampi(int(data.palette), 0, 2) if data.palette is float or data.palette is int else 0
-		data.weapon = clampi(int(data.weapon), 0, 2) if data.weapon is float or data.weapon is int else 0
-		data.character = 0
-		data.map = 0
-		if not palette_unlocked(data.palette):
-			data.palette = 0
-		selected_weapon = data.weapon
-		data.gold = clampi(int(data.gold), 0, 2147483647) if data.gold is float or data.gold is int else 500
-		if not data.has("meta_upgrades") or not data.meta_upgrades is Dictionary:
-			data.meta_upgrades = defaults().meta_upgrades
-		for stat in ["hp", "damage", "armor", "haste"]:
-			data.meta_upgrades[stat] = safe_int(dict_value(data.meta_upgrades, stat, 0), 0, 0, 20)
-		data.upgrade_core = clampi(int(data.upgrade_core), 0, 2147483647) if data.upgrade_core is float or data.upgrade_core is int else 25
-		sanitize_nested_data()
-
-func palette_unlocked(index: int) -> bool:
-	return index == 0 or (index == 1 and data.kills >= 100) or (index == 2 and data.wins >= 1)
+			warning = "save_recovered" if is_profile_candidate(loaded) else "save_reset"
+	if is_profile_candidate(loaded):
+		data = sanitize_profile(migrate_profile(loaded))
+	else:
+		data = defaults()
 
 func save_profile() -> Error:
+	data = sanitize_profile(data)
 	var temporary: String = save_path + ".tmp"
 	var file := FileAccess.open(temporary, FileAccess.WRITE)
 	if file == null:
@@ -128,120 +123,70 @@ func save_profile() -> Error:
 	if write_error != OK:
 		warning = "save_failed"
 		return write_error
-	# Keep a known-valid backup, including when recovering a corrupt primary.
-	if valid_profile(read_profile(save_path)):
+	if is_profile_candidate(read_profile(save_path)):
 		var backup_error := DirAccess.copy_absolute(save_path, save_path + ".bak")
 		if backup_error != OK:
 			warning = "save_failed"
 			return backup_error
 	var result := DirAccess.rename_absolute(temporary, save_path)
-	if result != OK:
-		warning = "save_failed"
-	else:
-		warning = ""
+	warning = "save_failed" if result != OK else ""
 	return result
 
 func setting(key: String, value: Variant) -> void:
-	if key not in ["volume", "music", "reduced", "language", "tutorial", "weapon", "palette", "character", "map"]:
+	if key not in ["volume", "music", "sfx", "reduced", "language", "tutorial", "shake", "haptics", "contrast", "weapon"]:
+		return
+	if key == "weapon" and (not value is int or value < 0 or value >= 3 or not data.weapon_unlocks[value]):
 		return
 	data[key] = value
 	save_profile()
 	settings_changed.emit()
 
-func add_rewards(gold: int, core: int, slot: String = "", shards: int = 0, persist: bool = true) -> void:
-	data.gold += maxi(0, gold)
-	data.upgrade_core += maxi(0, core)
-	if slot in SLOTS:
-		data.shards[slot] = int(dict_value(data.shards, slot, 0)) + maxi(0, shards)
-	if persist:
-		save_profile()
+func meta_cost(stat: String) -> Dictionary:
+	var level: int = safe_int(data.meta_upgrades.get(stat, 0), 0, 0, META_MAX_LEVEL)
+	return {"gold": 120 + level * 95, "core": 4 + level * 3}
 
 func upgrade_meta(stat: String) -> bool:
-	if stat not in ["hp", "damage", "armor", "haste"]:
+	if stat not in META_STATS:
 		return false
-	var level: int = int(dict_value(data.meta_upgrades, stat, 0))
-	var cost := 100 + level * 75
-	if data.gold < cost or level >= 20:
+	var level: int = int(data.meta_upgrades[stat])
+	var cost: Dictionary = meta_cost(stat)
+	if level >= META_MAX_LEVEL or data.gold < cost.gold or data.upgrade_core < cost.core:
 		return false
-	data.gold -= cost
+	data.gold -= cost.gold
+	data.upgrade_core -= cost.core
 	data.meta_upgrades[stat] = level + 1
 	save_profile()
 	return true
 
-func upgrade_equipment(slot: String) -> bool:
-	if slot not in SLOTS:
-		return false
-	var item: Dictionary = data.equipment[slot]
-	var level: int = int(item.level)
-	var shard_cost: int = 10 + level * 8
-	var core_cost: int = 5 + level * 4
-	if data.shards[slot] < shard_cost or data.upgrade_core < core_cost or level >= 20:
-		return false
-	data.shards[slot] -= shard_cost
-	data.upgrade_core -= core_cost
-	item.level = level + 1
-	data.equipment[slot] = item
-	save_profile()
-	return true
+func add_rewards(gold: int, core: int, persist: bool = true) -> void:
+	data.gold = safe_int(data.gold, 0) + maxi(0, gold)
+	data.upgrade_core = safe_int(data.upgrade_core, 0) + maxi(0, core)
+	if persist:
+		save_profile()
 
-func chest_ready(rarity: String) -> bool:
-	var chest: Dictionary = dict_value(data.chests, rarity, {})
-	if String(dict_value(chest, "last_free", "")) == "":
-		return true
-	var today: int = Time.get_unix_time_from_system() / 86400
-	var opened: int = int(dict_value(chest, "last_day", 0))
-	return today - opened >= int(dict_value(chest, "free_days", 1))
-
-func open_chest(slot: String, rarity_index: int, paid: bool = false) -> Dictionary:
-	if slot not in SLOTS:
-		return {}
-	rarity_index = clampi(rarity_index, 0, RARITIES.size() - 1)
-	var rarity: String = RARITIES[rarity_index]
-	var chest: Dictionary = data.chests[rarity]
-	if paid:
-		if data.gold < chest.gold:
-			return {}
-		data.gold -= chest.gold
-	else:
-		if not chest_ready(rarity):
-			return {}
-		chest.last_day = Time.get_unix_time_from_system() / 86400
-		chest.last_free = Time.get_date_string_from_system()
-	data.chests[rarity] = chest
-	var item: Dictionary = data.equipment[slot]
-	item.id = "chest_" + rarity.to_lower().replace(" ", "_")
-	item.rarity = rarity_index
-	item.level = maxi(1, int(item.level))
-	item.shards = 0
-	data.equipment[slot] = item
-	data.shards[slot] += 5 + rarity_index * 5
-	save_profile()
-	return item.duplicate(true)
-
-func open_chest_with_priority(slot: String, rarity_index: int) -> Dictionary:
-	"""Consume the daily free key first, then buy a key with gold."""
-	if slot not in SLOTS:
-		return {"status": "invalid"}
-	rarity_index = clampi(rarity_index, 0, RARITIES.size() - 1)
-	var rarity: String = RARITIES[rarity_index]
-	if chest_ready(rarity):
-		var free_item := open_chest(slot, rarity_index, false)
-		return {"status": "free", "item": free_item}
-	var chest: Dictionary = dict_value(data.chests, rarity, {})
-	var cost: int = int(dict_value(chest, "gold", 0))
-	if data.gold >= cost:
-		var paid_item := open_chest(slot, rarity_index, true)
-		return {"status": "gold", "item": paid_item, "cost": cost}
-	return {"status": "insufficient_gold", "cost": cost, "gold": data.gold}
-
-func finish_run(won: bool, seconds: float, kills: int) -> void:
+func finish_run(won: bool, seconds: float, kills: int, gold: int, cores: int, bosses: int, circuits: int = 0, captured: int = 0) -> void:
 	if practice:
 		return
 	data.runs += 1
 	data.wins += 1 if won else 0
-	data.kills += kills
+	data.kills += maxi(0, kills)
 	data.best_seconds = maxf(data.best_seconds, seconds)
-	data.missions.kills = int(dict_value(data.missions, "kills", 0)) + kills
-	data.missions.wins = int(dict_value(data.missions, "wins", 0)) + (1 if won else 0)
-	add_rewards(kills * 2, kills, "", 0, false)
+	data.stats.bosses += maxi(0, bosses)
+	data.stats.circuits += maxi(0, circuits)
+	data.stats.captured += maxi(0, captured)
+	if bosses >= 2:
+		data.weapon_unlocks[1] = true
+	if won:
+		data.weapon_unlocks[2] = true
+	add_rewards(gold + bosses * 30, cores + bosses * 2, false)
 	save_profile()
+
+func reset_progress() -> void:
+	var language: String = data.language
+	var settings := {"volume": data.volume, "music": data.music, "sfx": data.sfx, "reduced": data.reduced, "shake": data.shake, "haptics": data.haptics, "contrast": data.contrast}
+	data = defaults()
+	data.language = language
+	for key in settings:
+		data[key] = settings[key]
+	save_profile()
+	settings_changed.emit()

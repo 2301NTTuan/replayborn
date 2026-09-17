@@ -4,10 +4,16 @@
 script = ExtResource("1")
 id = "lance"
 interval = 0.92
-damage = 2.10
+damage = 4.80
 speed = 1250.0
 pellets = 1
 spread = 0
 pierce = 2
 lifetime = 2
+finisher_damage = 27.0
+finisher_count = 1
+finisher_decay = 1.0
+finisher_lock = 0.95
+finisher_title_vi = "Sụp đổ khe nứt"
+finisher_title_en = "Rift Collapse"
 

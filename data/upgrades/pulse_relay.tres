@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "pulse_relay"
+title_vi = "Tiếp sóng Pulse"
+title_en = "Pulse Relay"
+description_vi = "Dẫn điện thêm 1 mục tiêu trong vòng mạch."
+description_en = "Chains to 1 additional circuit target."
+stat = "pulse_relay"
+amount = 1.0
+limit = 4

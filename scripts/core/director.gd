@@ -2,40 +2,53 @@ extends RefCounted
 
 const Catalog = preload("res://scripts/data/catalog.gd")
 const LEVEL_COUNT := 5
-const MAX_ACTIVE_ENEMIES: int = 62
+const MAX_ACTIVE_ENEMIES: int = 76
 
 var game: Node
 var spawn_left: float = 0.8
 var boss_spawned: bool = false
 var stage: int = 0
 var boss_defeated: int = 0
-const PHASE_DURATION := 60.0
-const LEVEL_DURATION := 120.0
+const PHASE_DURATION := 47.5
+const LEVEL_DURATION := 95.0
 var level_duration: float = LEVEL_DURATION
 var next_horde_at: float = 18.0
 var horde_index: int = 0
 var level_started_at: float = 0.0
 var spawn_index: int = 0
+var transition_left: float = 0.0
 
 func _init(owner_game: Node) -> void:
 	game = owner_game
 
 func advance(delta: float) -> void:
+	if transition_left > 0.0:
+		transition_left = maxf(0.0, transition_left - delta)
+		if transition_left <= 0.0 and boss_defeated < LEVEL_COUNT:
+			boss_spawned = false
+			stage = boss_defeated
+			level_started_at = game.run_time
+			next_horde_at = game.run_time + 18.0
+			spawn_index = 0
+			spawn_left = 2.0
+		return
 	if game.practice:
 		stage = mini(LEVEL_COUNT, int(game.run_time / 60.0))
 	else:
 		stage = mini(LEVEL_COUNT - 1, boss_defeated)
 		if boss_defeated >= LEVEL_COUNT:
 			return
-		if game.run_time - level_started_at >= LEVEL_DURATION and not boss_spawned:
+		var level_data: Resource = Catalog.LEVELS[stage]
+		if game.run_time - level_started_at >= level_data.duration and not boss_spawned:
 			boss_spawned = true
 			# End the wave before the duel; no leftover swarm during the boss.
 			for enemy in game.enemies:
 				enemy.queue_free()
 			game.enemies.clear()
 			game.combat.hostile.clear()
-			game.spawn_enemy(Catalog.ENEMIES[5 + stage], 0, game.map_data.boss_scale * (1.0 + stage * 0.20))
+			game.spawn_enemy(Catalog.ENEMIES[level_data.boss_index], 0, game.map_data.boss_scale * (1.0 + stage * 0.20))
 			game.hud.announce("boss_arrives")
+			game.feedback(12.0, 55)
 	if boss_spawned:
 		return
 	# A horde window starts at 30s and repeats. Between windows the arena breathes.
@@ -47,7 +60,7 @@ func advance(delta: float) -> void:
 	spawn_left -= delta
 	if spawn_left > 0 or game.enemies.size() >= MAX_ACTIVE_ENEMIES:
 		return
-	var order: Array[int] = game.map_data.enemies_for_stage(mini(stage, LEVEL_COUNT - 1))
+	var order: Array[int] = Catalog.LEVELS[mini(stage, LEVEL_COUNT - 1)].enemy_indices
 	if order.is_empty():
 		return
 	var data: Resource = Catalog.ENEMIES[order[spawn_index % order.size()]]
@@ -55,7 +68,7 @@ func advance(delta: float) -> void:
 	var phase_time: float = game.run_time - level_started_at
 	var hard_phase: bool = phase_time >= PHASE_DURATION
 	var elite: int = 0
-	if hard_phase and randf() < 0.14:
+	if hard_phase and randf() < float(Catalog.LEVELS[stage].elite_chance):
 		elite = 1 if randf() < 0.72 else 2
 	game.spawn_enemy(data, elite, enemy_difficulty())
 	# The opening is deliberately calm, then the single-spawn cadence tightens.
@@ -66,7 +79,7 @@ func spawn_horde() -> void:
 	if game.enemies.size() >= MAX_ACTIVE_ENEMIES:
 		return
 	horde_index += 1
-	var order: Array[int] = game.map_data.enemies_for_stage(mini(stage, LEVEL_COUNT - 1))
+	var order: Array[int] = Catalog.LEVELS[mini(stage, LEVEL_COUNT - 1)].enemy_indices
 	if order.is_empty():
 		return
 	var phase_time: float = game.run_time - level_started_at
@@ -90,15 +103,11 @@ func enemy_difficulty() -> float:
 func complete_boss() -> void:
 	if not boss_spawned:
 		return
-	boss_spawned = false
 	boss_defeated += 1
 	if boss_defeated >= LEVEL_COUNT:
+		boss_spawned = false
 		game.boss_killed = true
 	else:
-		stage = boss_defeated
-		level_started_at = game.run_time
-		next_horde_at = game.run_time + 18.0
-		spawn_index = 0
-		spawn_left = 2.0
+		transition_left = 3.0
 		game.combat.hostile.clear()
 		game.hud.announce("level_cleared")

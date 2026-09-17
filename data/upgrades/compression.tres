@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "compression"
+title_vi = "Nén ký ức"
+title_en = "Compression"
+description_vi = "Vòng mạch nhỏ nhận 15% sát thương kết liễu."
+description_en = "Small circuits gain 15% finisher damage."
+stat = "compression"
+amount = 0.15
+limit = 3

@@ -3,8 +3,8 @@
 [resource]
 script = ExtResource("1")
 id = "boss_reaper"
-title_vi = "Tử Thần Phân Mảnh"
-title_en = "Shard Reaper"
+title_vi = "Tử Thần Thời Gian"
+title_en = "Chrono Reaper"
 health = 145.0
 speed = 96.0
 radius = 74.0

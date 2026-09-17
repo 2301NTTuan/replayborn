@@ -1,24 +1,15 @@
 # Replayborn production handoff
 
-Open `project.godot` with Godot 4.7.2 and press F6/F5. The project opens at the Vietnamese/English menu. Start a Neon Ruins run or use Practice for a five-minute session.
+Current version: `0.5.0-alpha.1`. Open with Godot 4.7.2. The release slice is Astria in Neon Ruins only.
 
-Windows artifact: `exports/windows/Replayborn.exe`
+Core gameplay is Time Circuit: movement records a short sampled trail, crossing an old non-adjacent segment creates a validated polygon, captured enemies are snapshotted and time-locked, then Pulse/Scatter/Lance performs its data-driven finisher. The former multi-character replay mechanic and its files are removed.
 
-Touch control is invisible and dynamic: touch and drag anywhere inside the arena below the top HUD. No joystick graphic appears.
+Normal mode has five resource-driven levels and five bosses. Practice is a five-minute mechanics session. Profile schema 2 stores settings, currency, four meta upgrades, weapon unlocks and statistics with atomic temp-file writes and backup recovery. Legacy schema 1 profiles migrate on load.
 
-Normal runs contain five Neon Ruins levels. Each two-minute level ends with a distinct boss; defeating the boss unlocks the next level. Defeating boss five completes the run. Practice mode remains a five-minute fast test without level-boss progression.
+Run validation:
 
-The release is intentionally locked to Astria and Neon Ruins. Future character/map data is not presented as selectable runtime content.
-
-The loadout/shop layer uses only gold earned in game. When gold is insufficient it reports that state; no payment option is shown.
-Android debug artifact: `exports/android/Replayborn-debug.apk`
-
-Validation:
-
-```text
-powershell -ExecutionPolicy Bypass -File tools/validate.ps1
-godot --headless --path . --script res://tools/stress_probe.gd
-godot --headless --path . --script res://tools/balance_probe.gd
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/validate.ps1 -Godot 'C:\path\to\Godot_v4.7.2-stable_win64_console.exe'
 ```
 
-The app is offline and has no ads, online services, or purchases. `user://profile.json` stores settings and records, with a `.bak` recovery copy. A release signing keystore and a connected Android device are still required before store submission. Release AAB export uses standard installed Godot templates, not repository-local templates.
+Manual work still required before release: Android device touch/performance playtest, balance tuning from real runs, release keystore/signing, store listing and Play Console upload. Do not commit APK/AAB/EXE, `.godot`, keystores or secrets.

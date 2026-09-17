@@ -21,5 +21,12 @@ jobs:
       - name: Run smoke tests
         run: |
           godot --headless --path . --script res://tests/prototype_smoke.gd
+          godot --headless --path . --script res://tests/time_circuit_smoke.gd
+          godot --headless --path . --script res://tests/circuit_finisher_smoke.gd
           godot --headless --path . --script res://tests/session_smoke.gd
+          godot --headless --path . --script res://tests/tutorial_smoke.gd
           godot --headless --path . --script res://tests/run_smoke.gd
+          godot --headless --path . --script res://tests/enemy_roster_smoke.gd
+          godot --headless --path . --script res://tests/effect_lifecycle_smoke.gd
+          godot --headless --path . --script res://tests/hud_layout_smoke.gd
+          godot --headless --path . --script res://tests/menu_flow_smoke.gd

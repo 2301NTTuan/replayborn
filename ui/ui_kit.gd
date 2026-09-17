@@ -117,8 +117,8 @@ static func column(parent: Node, rect: Rect2) -> VBoxContainer:
 
 static func settings(parent: Node, profile: Node, language_changed: Callable) -> void:
 	var sound_card := card(parent)
-	caption(sound_card, "Âm thanh / Audio")
-	for key in ["volume", "music"]:
+	caption(sound_card, text("sound_section", profile))
+	for key in ["volume", "music", "sfx"]:
 		label(sound_card, text(key, profile), 26)
 		var slider := HSlider.new()
 		slider.min_value = 0
@@ -129,13 +129,20 @@ static func settings(parent: Node, profile: Node, language_changed: Callable) ->
 		slider.value_changed.connect(func(value: float) -> void: profile.setting(key, value))
 		sound_card.add_child(slider)
 	var access_card := card(parent)
-	caption(access_card, "Trải nghiệm / Experience")
+	caption(access_card, text("experience_section", profile))
 	var reduced := CheckButton.new()
 	reduced.text = text("reduced", profile)
 	reduced.custom_minimum_size.y = 62
 	reduced.button_pressed = profile.data.reduced
 	reduced.toggled.connect(func(value: bool) -> void: profile.setting("reduced", value))
 	access_card.add_child(reduced)
+	for setting_key in ["shake", "haptics", "contrast"]:
+		var toggle := CheckButton.new()
+		toggle.text = text(setting_key, profile)
+		toggle.custom_minimum_size.y = 62
+		toggle.button_pressed = bool(profile.data[setting_key])
+		toggle.toggled.connect(func(value: bool) -> void: profile.setting(setting_key, value))
+		access_card.add_child(toggle)
 	label(access_card, text("language", profile), 26)
 	var language := OptionButton.new()
 	language.custom_minimum_size.y = 76
@@ -146,13 +153,3 @@ static func settings(parent: Node, profile: Node, language_changed: Callable) ->
 		profile.setting("language", "vi" if index == 0 else "en")
 		language_changed.call_deferred())
 	access_card.add_child(language)
-	label(access_card, "Màu bản sao" if profile.data.language == "vi" else "Echo color", 26)
-	var palette := OptionButton.new()
-	palette.custom_minimum_size.y = 76
-	var names: Array = ["Lam / Blue", "Vàng / Gold · 100 kills", "Tím / Violet · 1 win"]
-	for index in range(3):
-		palette.add_item(names[index])
-		palette.set_item_disabled(index, not profile.palette_unlocked(index))
-	palette.select(profile.data.palette)
-	palette.item_selected.connect(func(index: int) -> void: profile.setting("palette", index))
-	access_card.add_child(palette)

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/level_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "signal_gate"
+title_vi = "Cổng Tín Hiệu"
+title_en = "Signal Gate"
+duration = 95.0
+enemy_indices = [0, 1]
+boss_index = 5
+elite_chance = 0.06

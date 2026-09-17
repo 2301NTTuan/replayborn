@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/level_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "replay_core"
+title_vi = "Lõi Tái Diễn"
+title_en = "Replay Core"
+duration = 95.0
+enemy_indices = [0, 1, 2, 3, 4]
+boss_index = 9
+elite_chance = 0.22

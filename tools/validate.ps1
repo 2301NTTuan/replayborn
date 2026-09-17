@@ -7,7 +7,7 @@ if ([string]::IsNullOrWhiteSpace($Godot)) {
 if ([string]::IsNullOrWhiteSpace($Godot) -or -not (Test-Path $Godot)) {
     throw 'Godot 4.7.2 was not found. Pass -Godot C:\path\to\Godot_v4.7.2-stable_win64_console.exe.'
 }
-$checks = @('tools/validate_resources.gd', 'tests/prototype_smoke.gd', 'tests/session_smoke.gd', 'tests/run_smoke.gd', 'tests/enemy_roster_smoke.gd')
+$checks = @('tools/validate_resources.gd', 'tests/time_circuit_smoke.gd', 'tests/circuit_finisher_smoke.gd', 'tests/prototype_smoke.gd', 'tests/session_smoke.gd', 'tests/tutorial_smoke.gd', 'tests/run_smoke.gd', 'tests/enemy_roster_smoke.gd', 'tests/effect_lifecycle_smoke.gd', 'tests/hud_layout_smoke.gd', 'tests/menu_flow_smoke.gd')
 foreach ($check in $checks) {
     $output = & $Godot --headless --path $projectRoot --script "res://$check" 2>&1
     $result = $LASTEXITCODE

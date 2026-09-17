@@ -1,21 +1,30 @@
 # Replayborn 0.5.0-alpha.1
 
-Godot 4.7.2 / GDScript / Mobile renderer. This offline Android-first vertical slice ships Astria, Neon Ruins, three weapon data sets, five regular enemy types, two elite tiers, fifteen in-run upgrades, and five bosses.
+Replayborn is an offline, portrait Android action roguelite built with Godot 4.7.2, typed GDScript and the Mobile renderer.
 
-## Play
+> Your path becomes your weapon.
 
-Open `project.godot` in Godot 4.7.2 and run the project. Touch-drag below the HUD (or WASD) moves Astria; targeting and firing are automatic. A normal Neon Ruins run has five two-minute levels followed by their bosses, intended to last about 8–12 minutes including combat. Practice remains a five-minute fast test.
+Move Astria with touch-drag or WASD. Her weapon auto-fires at the nearest valid target. Movement leaves a six-second memory trail; cross an older trail segment to close a Time Circuit. Enemies captured by the polygon are time-locked and the selected weapon triggers its own finisher.
 
-Every 900 physics ticks, a self-contained Echo tape is created. Echoes replay movement and recorded projectile settings forever until their HP is depleted. Up to four coexist; creating a fifth safely removes the oldest.
+The vertical slice contains Astria, Neon Ruins, five 95-second levels, five bosses, five regular enemy families, Armored/Volatile elites, three main weapons and eighteen in-run upgrades. A normal run targets 8–12 minutes including bosses and transitions; Practice lasts five minutes.
 
-The release has no ads, IAP, online services, or Internet permission. Gold/XP earned in combat stays in RAM and persists at safe boundaries such as finishing a run, returning to menu, or app focus loss. Profiles retain temporary-file, backup, and corrupt-save recovery behavior.
+## Run
+
+Open `project.godot` in Godot 4.7.2 and run the project. The flow is Boot → Menu → Tutorial/Game → Result → Menu.
+
+Controls:
+
+- Android: touch and drag anywhere below the HUD; release to stop.
+- Windows debug: WASD or arrow keys.
+- Android Back / Escape: open Pause. Back cannot dismiss an upgrade choice.
 
 ## Validation
 
-```text
-powershell -ExecutionPolicy Bypass -File tools/validate.ps1
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/validate.ps1 -Godot 'C:\path\to\Godot_v4.7.2-stable_win64_console.exe'
 godot --headless --path . --script res://tools/stress_probe.gd
 godot --headless --path . --script res://tools/balance_probe.gd
+godot --headless --path . --quit-after 300
 ```
 
-Release exports use Godot's standard installed export templates. Debug APK is for internal testing; Android release output is an unsigned AAB and requires a separately managed keystore.
+The game has no ads, IAP, payment UI, analytics, accounts, network services or Internet permission. Android release is configured as an unsigned ARM64 AAB; debug is a separate APK preset. Signing material must remain outside Git.

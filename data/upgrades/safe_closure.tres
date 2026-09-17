@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "safe_closure"
+title_vi = "Khép mạch an toàn"
+title_en = "Safe Closure"
+description_vi = "Khép mạch nhận 8 khiên tạm thời, hồi 1,5 giây."
+description_en = "A closure grants 8 temporary shield, 1.5-second cooldown."
+stat = "circuit_shield"
+amount = 8.0
+limit = 4

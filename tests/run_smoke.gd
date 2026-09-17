@@ -46,7 +46,7 @@ func run() -> void:
 	game.run_tick = int(game.director.LEVEL_DURATION * 60.0) - 1
 	game.damage_time = 99
 	game._physics_process(1.0 / 60)
-	check(is_instance_valid(game.boss), "first boss appears at five minutes")
+	check(is_instance_valid(game.boss), "first boss appears after configured wave")
 	var boss = game.boss
 	boss.spawn_protection = 0
 	boss.skill_primary = 0
@@ -63,8 +63,10 @@ func run() -> void:
 				game._physics_process(1.0 / 60)
 			check(game.won, "fifth boss ends the map")
 			break
-		check(not game.won and not game.director.boss_spawned, "intermediate boss starts next wave")
-		var trio: Array = game.map_data.enemies_for_stage(level + 1)
+		for transition_tick in range(181):
+			game._physics_process(1.0 / 60.0)
+		check(not game.won and not game.director.boss_spawned, "intermediate boss starts next wave after rest")
+		var trio: Array = game.Catalog.LEVELS[level + 1].enemy_indices
 		for index in range(3):
 			game.director.spawn_left = 0
 			game.director.advance(1.0 / 60)

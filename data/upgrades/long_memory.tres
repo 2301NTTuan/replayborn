@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "long_memory"
+title_vi = "Ký ức dài"
+title_en = "Long Memory"
+description_vi = "Đường ký ức tồn tại thêm 0,75 giây."
+description_en = "Memory trail lasts 0.75 seconds longer."
+stat = "trail_duration"
+amount = 0.75
+limit = 4

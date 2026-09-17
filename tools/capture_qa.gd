@@ -30,9 +30,7 @@ func run() -> void:
 		var enemy = game.spawn_enemy(game.Catalog.ENEMIES[index], 0)
 		enemy.position = Vector2(200 + index * 160, 750)
 		enemy.spawn_protection = 0
-	for tick in range(900):
-		game.recorder.record(Vector2(300 + tick * 0.2, 1200), [])
-	game.create_echo()
+	game.circuit.points = PackedVector2Array([Vector2(300, 1200), Vector2(760, 1200), Vector2(760, 1550), Vector2(300, 1550)])
 	game.hud.refresh()
 	await capture("arena_vi")
 	game.toggle_pause()

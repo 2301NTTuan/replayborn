@@ -37,14 +37,14 @@ func _draw() -> void:
 	draw_rect(Rect2(42, 720, 996, 1140), Color("070d18", 0.88))
 	draw_rect(Rect2(42, 720, 996, 1140), Color("24384f", 0.9), false, 1)
 	draw_string(DISPLAY_FONT, Vector2(64, 156), "REPLAYBORN", HORIZONTAL_ALIGNMENT_LEFT, -1, 76, Color("edf6ff"))
-	draw_string(DISPLAY_FONT, Vector2(68, 205), "ECHO SURVIVAL  /  MOBILE BUILD", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("72f6d4"))
+	draw_string(DISPLAY_FONT, Vector2(68, 205), t("tagline"), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("72f6d4"))
 	draw_string(DISPLAY_FONT, Vector2(68, 330), "NEON RUINS", HORIZONTAL_ALIGNMENT_LEFT, -1, 48, Color("edf6ff"))
-	draw_string(DISPLAY_FONT, Vector2(70, 374), "5 LEVELS  •  5 BOSSES  •  OFFLINE", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("8fa7ba"))
+	draw_string(DISPLAY_FONT, Vector2(70, 374), t("menu_status"), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("8fa7ba"))
 	draw_rect(Rect2(64, 470, 438, 112), Color("0c1624", 0.82))
 	draw_rect(Rect2(64, 470, 438, 112), Color("263c55"), false, 1)
 	draw_line(Vector2(86, 498), Vector2(194, 498), Color("f2c45b"), 3)
 	draw_string(DISPLAY_FONT, Vector2(86, 535), "ASTRIA", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, Color("edf6ff"))
-	draw_string(DISPLAY_FONT, Vector2(86, 565), "ECHO RUNNER  ·  READY", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("9cb2c6"))
+	draw_string(DISPLAY_FONT, Vector2(86, 565), t("runner_ready"), HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("9cb2c6"))
 	if subpage_active:
 		draw_rect(Rect2(0, 0, 1080, 1920), Color(0.012, 0.018, 0.032, 0.92))
 
@@ -53,115 +53,61 @@ func show_home() -> void:
 	subpage_active = false
 	queue_redraw()
 	back_button.hide()
-	UI.caption(body, "RUN DOCK", true)
+	UI.caption(body, t("run_dock"), true)
 	var status := UI.card(body, Color("2a4058"))
-	UI.label(status, "HỒ SƠ", 18, true)
+	UI.label(status, t("profile"), 18, true)
+	UI.label(status, "◆ %d   ◈ %d" % [profile.data.gold, profile.data.upgrade_core], 24, true)
 	var record_label := UI.label(status, t("records") % [profile.data.runs, profile.data.wins, profile.data.kills], 22, true)
 	record_label.add_theme_color_override("font_color", Color("a9c2d8"))
 	if not profile.warning.is_empty():
 		UI.label(body, t(profile.warning), 24, true)
-	UI.primary_button(body, "▶  BẮT ĐẦU RUN", func() -> void: launch(false), 98).grab_focus()
-	UI.button(body, "⬆  Nâng cấp Player", show_player_upgrades, 70)
+	UI.primary_button(body, "▶  " + t("play"), func() -> void: launch(false), 98).grab_focus()
+	UI.button(body, "⌁  " + t("armory"), show_armory, 70)
+	UI.button(body, "⬆  " + t("meta_upgrades"), show_player_upgrades, 70)
+	UI.button(body, "◎  " + t("practice"), func() -> void: launch(true), 70)
 	UI.button(body, "⚙  " + t("settings"), show_settings, 70)
 	UI.button(body, "?  " + t("help"), show_help, 70)
 	UI.danger_button(body, t("quit"), func() -> void: get_tree().quit(), 64)
-	UI.label(body, "0.5.0-alpha.1  ·  OFFLINE", 20, true)
+	UI.label(body, "0.5.0-alpha.1  ·  " + t("offline"), 20, true)
 
 func show_player_upgrades() -> void:
 	UI.clear(body)
 	show_back_button()
 	var header := UI.card(body, Color("ffd166"))
-	UI.label(header, "NÂNG CẤP PLAYER", 38, true)
-	UI.label(body, "Vàng hiện có: %d  ·  Mỗi cấp tăng hiệu quả trong mọi trận" % profile.data.gold, 23, true)
-	var labels := {"hp": "Máu tối đa  +15", "damage": "Damage  +5%", "armor": "Giáp  +1", "haste": "Tốc độ bắn  +5%"}
+	UI.label(header, t("meta_upgrades"), 38, true)
+	UI.label(body, "◆ %d   ◈ %d" % [profile.data.gold, profile.data.upgrade_core], 23, true)
+	var labels := {"hp": t("meta_hp"), "damage": t("meta_damage"), "armor": t("meta_armor"), "haste": t("meta_haste")}
 	for stat in ["hp", "damage", "armor", "haste"]:
 		var level: int = int(dict_value(profile.data.meta_upgrades, stat, 0))
-		var cost := 100 + level * 75
+		var cost: Dictionary = profile.meta_cost(stat)
 		var card := UI.card(body, Color("315976"))
-		UI.label(card, "%s  ·  Cấp %d/20" % [labels[stat], level], 24, true)
-		UI.button(card, "NÂNG CẤP  ·  %d VÀNG" % cost, func() -> void:
+		UI.label(card, "%s  ·  %s %d/10" % [labels[stat], t("level_word"), level], 24, true)
+		var buy := UI.button(card, "%s  ·  ◆ %d + ◈ %d" % [t("upgrade_action"), cost.gold, cost.core], func() -> void:
 			if profile.upgrade_meta(stat):
 				show_player_upgrades(), 70)
+		buy.disabled = level >= 10 or profile.data.gold < cost.gold or profile.data.upgrade_core < cost.core
 
-func show_loadout() -> void:
-	UI.clear(body)
-	UI.label(body, t("loadout"), 44, true)
-	UI.label(body, "Áo · Quần · Giày · Giáp · Vũ khí", 24, true)
-	UI.label(body, "Mảnh: %s  ·  Lõi nâng cấp: %d  ·  Vàng: %d" % [str(profile.data.shards), profile.data.upgrade_core, profile.data.gold], 22, true)
-	for slot in profile.SLOTS:
-		var item: Dictionary = profile.data.equipment[slot]
-		var rarity: String = profile.RARITIES[int(item.rarity)]
-		UI.button(body, "%s  ·  %s  ·  Lv.%d" % [slot, rarity, item.level], func() -> void:
-			if profile.upgrade_equipment(slot):
-				show_loadout())
-		UI.label(body, "Nâng cấp: %d mảnh + %d lõi" % [10 + int(item.level) * 8, 5 + int(item.level) * 4], 19)
-	show_back_button()
-
-func show_shop() -> void:
-	UI.clear(body)
-	UI.label(body, t("shop"), 44, true)
-	UI.label(body, "Vàng: %d  ·  Key free được ưu tiên trước" % profile.data.gold, 24, true)
-	UI.label(body, "Chọn từng loại rương và độ hiếm. Nếu hết lượt free, hệ thống tự dùng vàng mua key.", 21, true)
-	for slot in profile.SLOTS:
-		UI.label(body, "━━  RƯƠNG %s  ━━" % slot, 31, true)
-		for rarity_index in range(profile.RARITIES.size()):
-			var rarity: String = profile.RARITIES[rarity_index]
-			var chest: Dictionary = profile.data.chests[rarity]
-			var ready: String = "KEY FREE SẴN" if profile.chest_ready(rarity) else "KEY FREE sau %d ngày" % chest.free_days
-			UI.button(body, "%s  ·  %s  ·  %d vàng/key" % [rarity, ready, chest.gold], func() -> void:
-				open_shop_chest(slot, rarity_index), 70)
-	show_back_button()
-
-func open_shop_chest(slot: String, rarity_index: int) -> void:
-	var result: Dictionary = profile.open_chest_with_priority(slot, rarity_index)
-	match String(dict_value(result, "status", "")):
-		"free":
-			show_shop()
-		"gold":
-			show_shop()
-		"insufficient_gold":
-			show_insufficient_gold(int(dict_value(result, "cost", 0)))
-		_:
-			show_shop()
-
-func show_insufficient_gold(cost: int) -> void:
-	var dialog := ConfirmationDialog.new()
-	dialog.title = "Không đủ vàng"
-	dialog.dialog_text = "Bạn cần %d vàng để mở rương này." % cost
-	dialog.ok_button_text = "Đã hiểu"
-	dialog.cancel_button_text = "Đóng"
-	add_child(dialog)
-	dialog.confirmed.connect(func() -> void:
-		dialog.queue_free()
-		show_shop())
-	dialog.canceled.connect(func() -> void:
-		dialog.queue_free())
-	dialog.popup_centered(Vector2(760, 300))
-
-func show_missions() -> void:
+func show_armory() -> void:
 	UI.clear(body)
 	show_back_button()
-	UI.label(body, t("missions"), 44, true)
-	var missions: Dictionary = profile.data.missions
-	UI.label(body, "Hạ 100 quái: %d / 100" % mini(100, int(missions.kills)), 26)
-	if not missions.claimed_kills and missions.kills >= 100:
-		UI.button(body, "Nhận thưởng · 500 vàng + 50 lõi", func() -> void:
-			profile.add_rewards(500, 50)
-			profile.data.missions.claimed_kills = true
-			profile.save_profile()
-			show_missions())
-	else:
-		UI.label(body, "Thưởng: 500 vàng + 50 lõi" if not missions.claimed_kills else "Đã nhận", 22)
-	UI.label(body, "Thắng 1 trận: %d / 1" % mini(1, int(missions.wins)), 26)
-	if not missions.claimed_wins and missions.wins >= 1:
-		UI.button(body, "Nhận thưởng · 1000 vàng + 100 lõi", func() -> void:
-			profile.add_rewards(1000, 100)
-			profile.data.missions.claimed_wins = true
-			profile.save_profile()
-			show_missions())
-	else:
-		UI.label(body, "Thưởng: 1000 vàng + 100 lõi" if not missions.claimed_wins else "Đã nhận", 22)
-
+	var header := UI.card(body, Color("55ebd2"))
+	UI.label(header, t("armory"), 38, true)
+	var names := [t("pulse"), t("scatter"), t("lance")]
+	var finishers := [t("pulse_finisher"), t("scatter_finisher"), t("lance_finisher")]
+	for index in range(3):
+		var weapon_index: int = index
+		var unlocked: bool = bool(profile.data.weapon_unlocks[index])
+		var selected: bool = int(profile.data.weapon) == index
+		var card := UI.card(body, Color("55ebd2") if selected else Color("315976"))
+		UI.label(card, names[index], 30, true)
+		UI.label(card, finishers[index], 21)
+		if unlocked:
+			var select := UI.button(card, t("selected") if selected else t("select"), func() -> void:
+				profile.setting("weapon", weapon_index)
+				show_armory(), 66)
+			select.disabled = selected
+		else:
+			UI.label(card, t("weapon_locked_%d" % index), 20, true)
 
 func launch(practice: bool) -> void:
 	profile.practice = practice
@@ -173,6 +119,41 @@ func show_settings() -> void:
 	var header := UI.card(body, Color("55ebd2"))
 	UI.label(header, t("settings"), 38, true)
 	UI.settings(body, profile, show_settings)
+	UI.button(body, t("reset_tutorial"), func() -> void:
+		profile.setting("tutorial", false)
+		show_settings(), 64)
+	UI.button(body, t("credits"), show_credits, 64)
+	UI.danger_button(body, t("reset_progress"), confirm_reset_progress, 64)
+
+func show_credits() -> void:
+	UI.clear(body)
+	show_back_button()
+	var header := UI.card(body, Color("55ebd2"))
+	UI.label(header, t("credits"), 38, true)
+	UI.label(body, t("credits_body"), 21)
+
+func confirm_reset_progress() -> void:
+	var first := ConfirmationDialog.new()
+	first.title = t("reset_progress")
+	first.dialog_text = t("reset_warning_1")
+	add_child(first)
+	first.confirmed.connect(func() -> void:
+		first.queue_free()
+		confirm_reset_progress_final())
+	first.canceled.connect(first.queue_free)
+	first.popup_centered(Vector2(760, 300))
+
+func confirm_reset_progress_final() -> void:
+	var final_dialog := ConfirmationDialog.new()
+	final_dialog.title = t("reset_confirm_title")
+	final_dialog.dialog_text = t("reset_warning_2")
+	add_child(final_dialog)
+	final_dialog.confirmed.connect(func() -> void:
+		profile.reset_progress()
+		final_dialog.queue_free()
+		show_home())
+	final_dialog.canceled.connect(final_dialog.queue_free)
+	final_dialog.popup_centered(Vector2(760, 300))
 
 func show_help() -> void:
 	UI.clear(body)

@@ -10,4 +10,10 @@ pellets = 3
 spread = 0.18
 pierce = 0
 lifetime = 1.05
+finisher_damage = 22.0
+finisher_count = 10
+finisher_decay = 1.0
+finisher_lock = 0.7
+finisher_title_vi = "Hội tụ mảnh vỡ"
+finisher_title_en = "Shard Convergence"
 

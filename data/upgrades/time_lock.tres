@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "time_lock"
+title_vi = "Khóa thời gian"
+title_en = "Time Lock"
+description_vi = "Kẻ địch trong mạch bị khóa lâu hơn 0,18 giây."
+description_en = "Enemies caught in a circuit are locked 0.18 seconds longer."
+stat = "time_lock"
+amount = 0.18
+limit = 4

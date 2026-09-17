@@ -1,5 +1,6 @@
 extends CharacterBody2D
 const DISPLAY_FONT = preload("res://assets/fonts/CascadiaCode.ttf")
+const Words = preload("res://scripts/core/words.gd")
 
 var arena: Rect2 = Rect2(50, 310, 980, 1510)
 var game: Node
@@ -68,7 +69,8 @@ func _draw() -> void:
 		draw_line(muzzle, muzzle + facing * 20.0, Color("fff2b0", 0.75), 3)
 	if level_up_time > 0.0:
 		var alpha := clampf(level_up_time / 0.35, 0.0, 1.0)
-		draw_string(DISPLAY_FONT, Vector2(-58, -112 - (1.0 - alpha) * 12.0), "LEVEL UP", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1.0, 0.82, 0.32, alpha))
+		var language: String = game.profile.data.language if game != null and game.profile != null else "en"
+		draw_string(DISPLAY_FONT, Vector2(-58, -112 - (1.0 - alpha) * 12.0), Words.get_text("level_up", language), HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1.0, 0.82, 0.32, alpha))
 		draw_arc(Vector2.ZERO, 52.0 + (1.0 - alpha) * 18.0, 0, TAU, 32, Color(1.0, 0.82, 0.32, alpha * 0.7), 3)
 	var marker_y := -88.0 + sin(pulse * 4.0) * 3.0
 	draw_circle(Vector2(0, marker_y + 5), 10, Color(0.20, 0.95, 0.84, 0.10))

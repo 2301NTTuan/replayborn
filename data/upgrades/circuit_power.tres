@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "circuit_power"
+title_vi = "Công suất mạch"
+title_en = "Circuit Power"
+description_vi = "Kết liễu vòng mạch gây thêm 18% sát thương."
+description_en = "Circuit finishers deal 18% more damage."
+stat = "circuit_power"
+amount = 0.18
+limit = 5

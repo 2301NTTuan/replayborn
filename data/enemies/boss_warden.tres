@@ -3,8 +3,8 @@
 [resource]
 script = ExtResource("1")
 id = "boss_warden"
-title_vi = "Kẻ Canh Giữ Vòng Lặp"
-title_en = "Loop Warden"
+title_vi = "Người Gác Cổng"
+title_en = "Gate Warden"
 health = 55.0
 speed = 74.0
 radius = 62.0

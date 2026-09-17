@@ -7,7 +7,7 @@ var stats_label: Label
 var gold_label: Label
 var clock_label: Label
 var health_label: Label
-var echo_label: Label
+var memory_label: Label
 var xp_label: Label
 var boss_label: Label
 var progress: ProgressBar
@@ -31,6 +31,14 @@ func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
 
 func t(key: String) -> String:
 	return UI.text(key, game.profile)
+
+func apply_contrast(enabled: bool) -> void:
+	if root_control == null:
+		return
+	for node in root_control.find_children("*", "Control", true, false):
+		if node is Label or node is Button:
+			node.add_theme_constant_override("outline_size", 4 if enabled else 0)
+			node.add_theme_color_override("font_outline_color", Color.BLACK)
 
 func hud_card(rect: Rect2, border: Color = Color("315976")) -> Panel:
 	var panel := Panel.new()
@@ -69,7 +77,7 @@ func bind_game(owner_game: Node) -> void:
 	add_child(root_control)
 	# The HUD intentionally has no enclosing box. It reads as a light tactical
 	# overlay instead of a heavy window sitting over the game world.
-	var run_panel := hud_card(Rect2(36, 16, 1008, 72), Color("315c78"))
+	var run_panel := hud_card(Rect2(36, 16, 1008, 116), Color("315c78"))
 	run_panel.clip_contents = true
 	# These controls are deliberately parented to Run Status. Their local
 	# coordinates cannot escape that panel when the HUD is resized or retuned.
@@ -78,7 +86,7 @@ func bind_game(owner_game: Node) -> void:
 	replay_panel.size = Vector2(86, 56)
 	replay_panel.add_theme_stylebox_override("panel", UI.box(Color("181126", 0.96), 8, Color("70528f"), 1))
 	run_panel.add_child(replay_panel)
-	var run_caption := UI.label(root_control, "RUN STATUS", 16)
+	var run_caption := UI.label(root_control, t("run_status"), 16)
 	run_caption.position = Vector2(58, 27)
 	run_caption.size = Vector2(220, 18)
 	run_caption.add_theme_font_size_override("font_size", 14)
@@ -96,24 +104,38 @@ func bind_game(owner_game: Node) -> void:
 	gold_label.add_theme_color_override("font_color", Color("f2c45b"))
 	stats_label = UI.label(root_control, "", 24)
 	stats_label.position = Vector2(58, 48)
-	stats_label.size = Vector2(230, 22)
+	stats_label.size = Vector2(280, 22)
 	stats_label.add_theme_font_size_override("font_size", 17)
 	stats_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	stats_label.clip_text = true
 	stats_label.add_theme_color_override("font_color", Color("c0d2df"))
-	var memory_caption := UI.label(run_panel, "REPLAY", 14, true)
+	health_bar = ProgressBar.new()
+	health_bar.position = Vector2(22, 80)
+	health_bar.size = Vector2(458, 18)
+	health_bar.show_percentage = false
+	health_bar.add_theme_stylebox_override("background", UI.box(Color("172235"), 6, Color("315976"), 1))
+	health_bar.add_theme_stylebox_override("fill", UI.box(Color("ff647b"), 6, Color("ff9aaa"), 0))
+	run_panel.add_child(health_bar)
+	xp_progress = ProgressBar.new()
+	xp_progress.position = Vector2(498, 80)
+	xp_progress.size = Vector2(480, 18)
+	xp_progress.show_percentage = false
+	xp_progress.add_theme_stylebox_override("background", UI.box(Color("172235"), 6, Color("315976"), 1))
+	xp_progress.add_theme_stylebox_override("fill", UI.box(Color("55ebd2"), 6, Color("9ffff0"), 0))
+	run_panel.add_child(xp_progress)
+	var memory_caption := UI.label(run_panel, t("memory"), 14, true)
 	memory_caption.position = Vector2(702, 13)
 	memory_caption.size = Vector2(66, 16)
 	memory_caption.add_theme_font_size_override("font_size", 13)
 	memory_caption.add_theme_color_override("font_color", Color("e4dbff"))
-	echo_label = UI.label(run_panel, "", 22)
-	echo_label.position = Vector2(702, 31)
-	echo_label.size = Vector2(66, 26)
-	echo_label.add_theme_font_size_override("font_size", 24)
-	echo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	echo_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	echo_label.clip_text = true
-	echo_label.add_theme_color_override("font_color", Color("b78cff"))
+	memory_label = UI.label(run_panel, "", 22)
+	memory_label.position = Vector2(694, 31)
+	memory_label.size = Vector2(82, 26)
+	memory_label.add_theme_font_size_override("font_size", 18)
+	memory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	memory_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	memory_label.clip_text = true
+	memory_label.add_theme_color_override("font_color", Color("72f6d4"))
 	pause_button = compact_pause_button(run_panel)
 	joystick = Joystick.new()
 	joystick.name = "Joystick"
@@ -174,7 +196,7 @@ func bind_game(owner_game: Node) -> void:
 	cyan_rule.size = Vector2(928, 3)
 	cyan_rule.color = Color("55ebd2")
 	overlay_panel.add_child(cyan_rule)
-	overlay_kicker = UI.label(overlay_panel, "SYSTEM / REPLAYBORN", 18, true)
+	overlay_kicker = UI.label(overlay_panel, t("system_brand"), 18, true)
 	overlay_kicker.position = Vector2(46, 42)
 	overlay_kicker.size = Vector2(904, 28)
 	overlay_kicker.add_theme_color_override("font_color", Color("55ebd2"))
@@ -190,12 +212,18 @@ func bind_game(owner_game: Node) -> void:
 
 func refresh() -> void:
 	clock_label.text = "%02d:%02d" % [int(game.run_time) / 60, int(game.run_time) % 60]
-	stats_label.text = "LV.%02d  •  K.O. %03d" % [game.director.stage + 1, game.kills]
-	gold_label.text = "◆ %d" % game.profile.data.gold
-	echo_label.text = "%d/4" % game.echoes.size() if game.recorder.tick == 0 else "%02ds" % maxi(0, ceili(15.0 - game.recorder.tick / 60.0))
+	var level_data: Resource = game.Catalog.LEVELS[mini(game.director.stage, game.Catalog.LEVELS.size() - 1)]
+	var level_name: String = level_data.title_en if game.profile.data.language == "en" else level_data.title_vi
+	stats_label.text = "L%d  %s · %s" % [game.director.stage + 1, level_name, t(String(game.weapon.id))]
+	gold_label.text = "◆ +%d" % game.run_gold
+	health_bar.max_value = game.max_health
+	health_bar.value = game.health + game.shield
+	xp_progress.max_value = game.xp_to_next
+	xp_progress.value = game.run_xp
+	memory_label.text = t("memory_ready") if game.circuit.snap_point != Vector2.INF else "%d%%" % roundi(game.circuit.memory_ratio(game.run_time) * 100.0)
 	if is_instance_valid(game.boss) and not game.boss.dead:
 		var boss_name: String = game.boss.spec.title_en if game.profile.data.language == "en" else game.boss.spec.title_vi
-		boss_label.text = "BOSS  /  %s   %d / %d HP" % [boss_name, ceili(game.boss.health), ceili(game.boss.max_health)]
+		boss_label.text = t("boss_hp") % [boss_name, ceili(game.boss.health), ceili(game.boss.max_health)]
 	else:
 		boss_label.text = ""
 
@@ -207,7 +235,7 @@ func show_overlay(title: String) -> void:
 	UI.clear(body)
 	overlay_title.text = title
 	overlay_title.add_theme_font_size_override("font_size", 36 if title.length() > 22 else 42)
-	overlay_kicker.text = "SYSTEM / REPLAYBORN"
+	overlay_kicker.text = t("system_brand")
 	overlay.show()
 
 func overlay_note(value: String) -> void:
@@ -223,8 +251,8 @@ func close_overlay() -> void:
 
 func show_pause() -> void:
 	show_overlay(t("pause"))
-	overlay_kicker.text = "RUN PAUSED  /  SESSION SAFE"
-	overlay_note("Dữ liệu vòng lặp hiện tại vẫn được giữ nguyên.")
+	overlay_kicker.text = t("paused_kicker")
+	overlay_note(t("pause_note"))
 	UI.primary_button(body, "▶  " + t("resume"), game.toggle_pause, 108).grab_focus()
 	UI.button(body, "↻  " + t("restart"), func() -> void: confirm_exit(game.restart_run), 88)
 	UI.button(body, "⚙  " + t("settings"), show_settings, 88)
@@ -233,35 +261,43 @@ func show_pause() -> void:
 
 func confirm_exit(action: Callable) -> void:
 	show_overlay(t("abandon"))
-	overlay_kicker.text = "CONFIRMATION REQUIRED"
-	overlay_note("Kết thúc phiên sẽ xoá tiến trình trong trận hiện tại.")
+	overlay_kicker.text = t("confirm_kicker")
+	overlay_note(t("abandon_note"))
 	UI.danger_button(body, t("confirm"), action, 96)
 	UI.button(body, t("cancel"), show_pause, 88).grab_focus()
 
 func show_settings() -> void:
 	show_overlay(t("settings"))
-	overlay_kicker.text = "SYSTEM CONFIGURATION"
+	overlay_kicker.text = t("settings_kicker")
 	UI.settings(body, game.profile, show_settings)
 	UI.button(body, "←  " + t("back"), show_pause)
 
 func show_help() -> void:
 	show_overlay(t("help"))
-	overlay_kicker.text = "FIELD MANUAL"
+	overlay_kicker.text = t("manual_kicker")
 	var guide := UI.card(body, Color("315976"))
 	UI.label(guide, t("help_body"), 27)
 	UI.button(body, "←  " + t("back"), show_pause)
 
 func show_tutorial() -> void:
 	show_overlay(t("help"))
-	overlay_kicker.text = "MISSION BRIEFING"
+	overlay_kicker.text = t("tutorial_kicker")
 	var guide := UI.card(body, Color("315976"))
-	UI.label(guide, t("help_body"), 27)
+	UI.label(guide, t("tutorial_intro"), 27)
 	UI.primary_button(body, "▶  " + t("ready"), game.begin_play, 104).grab_focus()
+	UI.button(body, t("skip_tutorial"), game.skip_tutorial, 78)
+
+func show_tutorial_complete() -> void:
+	show_overlay(t("tutorial_complete_title"))
+	overlay_kicker.text = t("tutorial_kicker")
+	var guide := UI.card(body, Color("55ebd2"))
+	UI.label(guide, t("tutorial_complete"), 27)
+	UI.primary_button(body, "▶  " + t("play"), game.finish_tutorial, 104).grab_focus()
 
 func show_upgrades(offers: Array) -> void:
-	show_overlay("CHỌN LÕI" if game.profile.data.language == "vi" else "CHOOSE CORE")
-	overlay_kicker.text = "LEVEL UP  /  SELECT ONE CORE"
-	overlay_note("Bạn đã nhặt đủ EXP. Chạm một lõi để nâng cấp vòng lặp.")
+	show_overlay(t("choose_core"))
+	overlay_kicker.text = t("upgrade_kicker")
+	overlay_note(t("upgrade_note"))
 	var accents := [Color("55ebd2"), Color("ffd26a"), Color("b78cff")]
 	for index in range(offers.size()):
 		var offer_index := index
@@ -289,19 +325,20 @@ func show_upgrades(offers: Array) -> void:
 			offer_panel.add_theme_stylebox_override("panel", UI.box(Color("17364c"), 22, accents[index % accents.size()], 3)))
 		offer_panel.mouse_exited.connect(func() -> void:
 			offer_panel.add_theme_stylebox_override("panel", UI.box(UI.SURFACE, 22, accents[index % accents.size()], 2)))
-		UI.caption(offer, "CORE %02d" % (index + 1))
+		UI.caption(offer, t("core_index") % (index + 1))
 		var title_label := UI.label(offer, title, 31)
 		title_label.add_theme_color_override("font_color", accents[index % accents.size()])
 		var description_label := UI.label(offer, description, 22)
 		description_label.add_theme_color_override("font_color", Color("b7c9d9"))
-		var tap_hint := UI.label(offer, "CHẠM VÀO THẺ ĐỂ CHỌN", 18, true)
+		var tap_hint := UI.label(offer, t("tap_select"), 18, true)
 		tap_hint.add_theme_color_override("font_color", accents[index % accents.size()])
 
 func show_result() -> void:
 	show_overlay(t("win" if game.won else "lose"))
-	overlay_kicker.text = "RUN REPORT  /  ECHO ARCHIVE"
+	overlay_kicker.text = t("result_kicker")
 	var report := UI.card(body, Color("ffd26a") if game.won else Color("a95070"))
 	UI.label(report, t("result") % [int(game.run_time) / 60, int(game.run_time) % 60, game.kills], 31, true)
+	UI.label(report, t("circuit_result") % [game.director.stage + 1, game.circuits_closed, game.enemies_captured, game.director.boss_defeated, game.run_gold, game.run_cores], 22)
 	if not game.profile.warning.is_empty():
 		UI.label(body, t(game.profile.warning), 25)
 	UI.primary_button(body, "↻  " + t("restart"), game.restart_run, 100).grab_focus()

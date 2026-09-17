@@ -1,4 +1,19 @@
-Replayborn uses Godot Engine. Game visuals and synthesized audio are generated within this project.
+Replayborn project-specific notices
+
+Tense Future Loop by gmason is distributed under CC0 1.0.
+Source: https://opengameart.org/content/tense-future-loop
+Runtime file: assets/audio/replayborn_tense_future_loop.ogg
+
+assets/fonts/CascadiaCode.ttf is present in the runtime. Its redistribution
+license and exact upstream binary still require owner verification before a
+commercial release; this notice does not claim clearance.
+
+Generated original_v1 visuals have provenance records in
+docs/ASSET_PROVENANCE.md. Those records do not replace similarity or
+trademark review.
+
+Replayborn uses Godot Engine. Procedural game visuals and synthesized sound
+effects are original code within this project.
 
 Copyright (c) 2014-present Godot Engine contributors (see AUTHORS.md).
 Copyright (c) 2007-2014 Juan Linietsky, Ariel Manzur.
@@ -1936,5 +1951,4 @@ appreciated but is not required.
 2. Altered source versions must be plainly marked as such, and must not be
 misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
-
 

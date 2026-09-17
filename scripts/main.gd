@@ -1,11 +1,11 @@
 extends Node2D
 
 const Catalog = preload("res://scripts/data/catalog.gd")
-const Recorder = preload("res://scripts/core/recorder.gd")
 const Combat = preload("res://scripts/core/combat.gd")
 const Director = preload("res://scripts/core/director.gd")
+const TimeCircuit = preload("res://scripts/core/time_circuit.gd")
+const CircuitFinisher = preload("res://scripts/core/circuit_finisher.gd")
 const Enemy = preload("res://scripts/enemy.gd")
-const Echo = preload("res://scripts/echo.gd")
 const XPOrb = preload("res://scripts/xp_orb.gd")
 const GoldOrb = preload("res://scripts/gold_orb.gd")
 const FieldPickup = preload("res://scripts/field_pickup.gd")
@@ -30,15 +30,15 @@ var weapon: Resource
 var map_data: Resource
 var combat: RefCounted
 var director: RefCounted
-var recorder: RefCounted = Recorder.new()
+var circuit: RefCounted = TimeCircuit.new()
+var circuit_finisher: RefCounted = CircuitFinisher.new()
 var enemies: Array = []
 var xp_orbs: Array = []
 var gold_orbs: Array = []
-var echoes: Array = []
 var upgrade_counts: Dictionary = {}
-var secondary_weapons: Dictionary = {}
+var secondary_weapons: Dictionary = {} # Legacy VFX hooks stay dormant in this slice.
 var offers: Array = []
-var stats: Dictionary = {"damage": 0.0, "haste": 0, "pellets": 0, "pierce": 0, "bullet_speed": 0.0, "lifetime": 0.0, "armor": 0, "regen": 0, "echo_power": 0.0, "crit": 0.0, "siphon": 0, "grace": 0.0}
+var stats: Dictionary = {"damage": 0.0, "haste": 0, "armor": 0, "regen": 0, "pellets": 0, "pierce": 0, "bullet_speed": 0.0, "lifetime": 0.0, "crit": 0.0, "siphon": 0.0, "grace": 0.0, "trail_duration": 0.0, "snap_radius": 0.0, "circuit_power": 0.0, "time_lock": 0.0, "circuit_shield": 0.0, "compression": 0.0, "pulse_relay": 0, "pulse_decay": 0.0, "pulse_overload": 0, "scatter_focus": 0, "scatter_shrapnel": 0, "lance_resonance": 0, "lance_collapse": 0.0}
 var run_level: int = 1
 var run_xp: int = 0
 var xp_to_next: int = 30
@@ -52,7 +52,12 @@ var won: bool = false
 var practice: bool = false
 var reduced_effects: bool = false
 var serial: int = 0
-var echo_serial: int = 0
+var shield: float = 0.0
+var circuit_shield_cooldown: float = 0.0
+var run_gold: int = 0
+var run_cores: int = 0
+var circuits_closed: int = 0
+var enemies_captured: int = 0
 var boss: Node2D
 var boss_killed: bool = false
 var test_mode: bool = false
@@ -60,6 +65,12 @@ var levelup_pending: bool = false
 var levelup_delay: float = 0.0
 var field_pickups: Array = []
 var game_camera: Camera2D
+var tutorial_active: bool = false
+var tutorial_distance: float = 0.0
+var tutorial_last_position: Vector2 = Vector2.ZERO
+var tutorial_targets_spawned: bool = false
+var shake_left: float = 0.0
+var shake_strength: float = 0.0
 
 func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
 	return source[key] if source.has(key) else fallback
@@ -135,9 +146,7 @@ func visual_load_high() -> bool:
 func _ready() -> void:
 	profile = get_node("/root/Profile")
 	practice = profile.practice
-	# Weapons are bonded to the selected hero. The legacy profile.weapon value is
-	# retained for save compatibility, but is no longer used to choose a weapon.
-	weapon = Catalog.weapon_for_character(int(profile.data.character))
+	weapon = Catalog.selected_weapon(int(profile.data.weapon))
 	# Current vertical slice deliberately ships one hero and one arena.
 	map_data = Catalog.MAPS[0]
 	sound = SoundBank.new()
@@ -148,7 +157,6 @@ func _ready() -> void:
 	player.game = self
 	setup_camera()
 	player.configure_character(0)
-	player.configure_equipment(profile.data.equipment)
 	var meta: Dictionary = profile.data.meta_upgrades
 	max_health += int(dict_value(meta, "hp", 0)) * 15
 	health = max_health
@@ -156,13 +164,15 @@ func _ready() -> void:
 	stats.armor = int(dict_value(meta, "armor", 0))
 	stats.haste = int(dict_value(meta, "haste", 0))
 	profile.settings_changed.connect(apply_settings)
-	apply_settings()
 	hud.bind_game(self)
-	recorder.begin(player.position)
+	apply_settings()
+	circuit.reset(player.position, 0.0)
 	RenderingServer.set_default_clear_color(map_data.background)
 	art = ArtBridge.new(self)
 	art.setup()
 	if not profile.data.tutorial and not test_mode:
+		tutorial_active = true
+		tutorial_last_position = player.position
 		state = State.TUTORIAL
 		get_tree().paused = true
 		hud.show_tutorial()
@@ -183,19 +193,81 @@ func setup_camera() -> void:
 func apply_settings() -> void:
 	reduced_effects = profile.data.reduced
 	player.reduced_effects = reduced_effects
-	sound.set_levels(profile.data.volume, profile.data.music)
+	sound.set_levels(profile.data.volume * profile.data.sfx, profile.data.volume * profile.data.music)
 	if combat != null and reduced_effects:
 		combat.effects.clear()
-	for echo in echoes:
-		echo.tint = [Color("ff4fd8"), Color("ffd166"), Color("63f6ff"), Color("a78bfa")][(echo.number - 1) % 4]
+	circuit.configure(stats)
+	if hud != null:
+		hud.call_deferred("apply_contrast", bool(profile.data.contrast))
+
+func feedback(strength: float, haptic_ms: int) -> void:
+	if bool(profile.data.shake) and not reduced_effects:
+		shake_left = 0.16
+		shake_strength = strength
+	if bool(profile.data.haptics):
+		Input.vibrate_handheld(haptic_ms, 0.35)
 
 func begin_play() -> void:
 	if state != State.TUTORIAL:
 		return
-	profile.setting("tutorial", true)
 	state = State.PLAYING
 	get_tree().paused = false
 	hud.close_overlay()
+	hud.announce("tutorial_move")
+
+func skip_tutorial() -> void:
+	profile.setting("tutorial", true)
+	tutorial_active = false
+	state = State.PLAYING
+	get_tree().paused = false
+	hud.close_overlay()
+
+func finish_tutorial() -> void:
+	profile.setting("tutorial", true)
+	tutorial_active = false
+	for enemy in enemies:
+		enemy.queue_free()
+	enemies.clear()
+	for orb in xp_orbs:
+		orb.queue_free()
+	xp_orbs.clear()
+	for orb in gold_orbs:
+		orb.queue_free()
+	gold_orbs.clear()
+	combat.friendly.clear()
+	combat.hostile.clear()
+	combat.effects.clear()
+	run_tick = 0
+	run_time = 0.0
+	kills = 0
+	run_gold = 0
+	run_cores = 0
+	run_level = 1
+	run_xp = 0
+	xp_to_next = 30
+	health = max_health
+	director = Director.new(self)
+	circuit.reset(player.position, 0.0)
+	state = State.PLAYING
+	get_tree().paused = false
+	hud.close_overlay()
+
+func advance_tutorial() -> void:
+	if not tutorial_active or tutorial_targets_spawned:
+		return
+	tutorial_distance += player.position.distance_to(tutorial_last_position)
+	tutorial_last_position = player.position
+	if tutorial_distance < 140.0:
+		return
+	tutorial_targets_spawned = true
+	for offset in [Vector2(-95, -75), Vector2(95, -75), Vector2(95, 75), Vector2(-95, 75)]:
+		var enemy = spawn_enemy(Catalog.ENEMIES[0])
+		enemy.position = (player.position + offset).clamp(ARENA.position + Vector2(60, 60), ARENA.end - Vector2(60, 60))
+		enemy.speed = 18.0
+		enemy.health = 40.0
+		enemy.max_health = 40.0
+		enemy.spawn_protection = 0.0
+	hud.announce("tutorial_circuit")
 
 func toggle_pause() -> void:
 	if state == State.PLAYING:
@@ -227,7 +299,7 @@ func _notification(what: int) -> void:
 func _physics_process(delta: float) -> void:
 	if state != State.PLAYING:
 		return
-	# A single coordinator fixes movement, replay, collision and recording order.
+	# Physics tick owns movement, circuit sampling and combat order.
 	run_tick += 1
 	run_time = run_tick / 60.0
 	if levelup_pending:
@@ -237,13 +309,22 @@ func _physics_process(delta: float) -> void:
 			offer_upgrades()
 			return
 	damage_time = maxf(0, damage_time - delta)
+	circuit_shield_cooldown = maxf(0.0, circuit_shield_cooldown - delta)
 	health = minf(max_health, health + stats.regen * delta)
 	player.advance(delta)
+	advance_tutorial()
 	if game_camera != null:
 		game_camera.position = player.position
+		shake_left = maxf(0.0, shake_left - delta)
+		game_camera.offset = Vector2(randf_range(-shake_strength, shake_strength), randf_range(-shake_strength, shake_strength)) if shake_left > 0.0 else Vector2.ZERO
 	if art != null:
 		art.update_player(player)
-	director.advance(delta)
+	circuit.configure(stats)
+	var closure: Dictionary = circuit.advance(player.position, run_time, delta, enemies)
+	if not closure.is_empty():
+		resolve_circuit(closure)
+	if not tutorial_active:
+		director.advance(delta)
 	for enemy in enemies:
 		enemy.advance(delta)
 		if art != null:
@@ -259,7 +340,7 @@ func _physics_process(delta: float) -> void:
 		var gold: Node2D = gold_orbs[index]
 		if gold.advance(delta):
 			if gold.collected:
-				profile.add_rewards(gold.value, 0, "", 0, false)
+				run_gold += gold.value
 				hud.show_pickup(gold.value, true)
 			gold.queue_free()
 			gold_orbs.remove_at(index)
@@ -270,25 +351,11 @@ func _physics_process(delta: float) -> void:
 				collect_field_pickup(pickup.kind)
 			pickup.queue_free()
 			field_pickups.remove_at(index)
-	for index in range(echoes.size() - 1, -1, -1):
-		var echo = echoes[index]
-		if echo.dead or echo.advance():
-			echo.queue_free()
-			echoes.remove_at(index)
-		else:
-			art.update_echo(echo)
-	var fired: Array = combat.fire(nearest_enemy(), delta)
-	# Each 15-second tape becomes an independent Echo; existing tapes loop.
-	if recorder.record(player.position, fired):
-		create_echo()
-		recorder.begin(player.position)
+	combat.fire(nearest_enemy(), delta)
 	combat.advance(delta)
 	for enemy in enemies:
 		if not enemy.dead and enemy.spawn_protection <= 0 and enemy.position.distance_to(player.position) < enemy.radius + 25:
 			take_damage(enemy.contact_damage)
-		for echo in echoes:
-			if not enemy.dead and enemy.spawn_protection <= 0 and not echo.dead and enemy.position.distance_to(echo.position) < enemy.radius + 25:
-				take_echo_damage(echo, enemy.contact_damage)
 	for index in range(enemies.size() - 1, -1, -1):
 		if enemies[index].dead and enemies[index].death_left <= 0:
 			enemies[index].queue_free()
@@ -302,12 +369,6 @@ func _physics_process(delta: float) -> void:
 	hud.refresh()
 	if run_tick % DRAW_EVERY_TICKS == 0:
 		queue_redraw()
-
-func take_echo_damage(echo: Node2D, amount: int) -> void:
-	if echo.dead or echo.hurt_time > 0.0 or state != State.PLAYING:
-		return
-	echo.take_damage(amount)
-	sound.play("hurt")
 
 func nearest_enemy() -> Node2D:
 	var result: Node2D
@@ -343,10 +404,14 @@ func spawn_enemy(data: Resource, elite: int = 0, difficulty: float = 1.0) -> Nod
 func take_damage(amount: int) -> void:
 	if damage_time > 0 or health <= 0 or state != State.PLAYING:
 		return
-	health = maxf(0, health - maxi(1, amount - int(stats.armor)))
+	var incoming: float = maxi(1, amount - int(stats.armor))
+	var absorbed: float = minf(shield, incoming)
+	shield -= absorbed
+	health = maxf(0, health - (incoming - absorbed))
 	damage_time = 0.7 + stats.grace
 	player.hurt_time = damage_time
 	sound.play("hurt")
+	feedback(7.0, 35)
 
 func kill_enemy(enemy: Node2D) -> void:
 	if enemy.dead:
@@ -363,6 +428,39 @@ func kill_enemy(enemy: Node2D) -> void:
 	health = minf(max_health, health + stats.siphon) if health > 0 else 0
 	if String(enemy.spec.id).begins_with("boss_"):
 		director.complete_boss()
+		run_cores += 8 + director.boss_defeated * 2
+	elif enemy.elite == 2:
+		# Volatile elites leave an avoidable, telegraphed hazard on death.
+		combat.add_enemy_zone({"position": enemy.position, "radius": 105.0, "delay": 0.55, "duration": 0.12, "damage": maxi(5, enemy.contact_damage), "age": 0.0, "hit": false})
+
+func damage_enemy(enemy: Node2D, amount: float, source: String = "weapon") -> void:
+	if not is_instance_valid(enemy) or enemy.dead or enemy.spawn_protection > 0.0:
+		return
+	var enemy_id: String = String(enemy.spec.id)
+	var multiplier: float = 0.68 if source == "circuit" and enemy_id.begins_with("boss_") else 1.0
+	if source != "circuit" and enemy_id == "boss_warden" and enemy.circuit_exposed <= 0.0:
+		multiplier *= 0.32
+	enemy.health -= maxf(0.0, amount) * multiplier
+	enemy.flash = 0.14
+	if enemy.health <= 0.0:
+		kill_enemy(enemy)
+
+func resolve_circuit(closure: Dictionary) -> void:
+	var polygon: PackedVector2Array = closure.polygon
+	var targets: Array = closure.targets.duplicate()
+	var result: Dictionary = circuit_finisher.apply(self, weapon, polygon, targets)
+	circuits_closed += 1
+	enemies_captured += int(result.get("captured", 0))
+	if circuit_shield_cooldown <= 0.0 and float(stats.circuit_shield) > 0.0:
+		shield = minf(40.0, shield + float(stats.circuit_shield))
+		circuit_shield_cooldown = 1.5
+	sound.play("circuit")
+	feedback(10.0, 28)
+	hud.announce("circuit_closed")
+	if tutorial_active:
+		state = State.TUTORIAL
+		get_tree().paused = true
+		hud.show_tutorial_complete()
 
 func spawn_xp_orb(at: Vector2, amount: int, tier: int = 0) -> void:
 	if xp_orbs.size() >= MAX_XP_ORBS:
@@ -429,10 +527,7 @@ func collect_field_pickup(kind: String) -> void:
 		combat.add_effect({"position": player.position, "life": 0.34, "heart_pickup": true})
 
 func enemy_durability_multiplier() -> float:
-	var weapon_levels: int = 0
-	for level in secondary_weapons.values():
-		weapon_levels += int(level)
-	return 1.30 + secondary_weapons.size() * 0.16 + weapon_levels * 0.07
+	return 1.20
 
 func gain_xp(amount: int) -> void:
 	run_xp += maxi(1, amount)
@@ -449,41 +544,14 @@ func gain_xp(amount: int) -> void:
 	player.show_level_up()
 	sound.play("level_up")
 
-func create_echo() -> void:
-	sound.play("echo")
-	hud.announce("replace_echo" if echoes.size() >= 4 else "new_echo")
-	if echoes.size() >= 4:
-		var oldest: Node = echoes.pop_front()
-		if is_instance_valid(oldest):
-			oldest.queue_free()
-	var echo = Echo.new()
-	echo_serial += 1
-	echo.setup(recorder.snapshot(), self, echo_serial)
-	add_child(echo)
-	if art != null:
-		art.attach_echo(echo)
-	echoes.append(echo)
-
 func offer_upgrades() -> void:
 	var pool: Array = []
-	var weapon_pool: Array = []
-	for item in Catalog.SECONDARY_WEAPONS:
-		if int(dict_value(secondary_weapons, item.weapon_id, 0)) < 5:
-			weapon_pool.append(item)
-	var preferred_weapons: Array = weapon_pool.filter(func(item: Resource) -> bool:
-		return int(dict_value(secondary_weapons, item.weapon_id, 0)) == 0) if secondary_weapons.size() < 3 else weapon_pool.filter(func(item: Resource) -> bool:
-		return int(dict_value(secondary_weapons, item.weapon_id, 0)) > 0)
-	preferred_weapons.shuffle()
-	pool.append_array(preferred_weapons.slice(0, mini(3, preferred_weapons.size())))
-	if pool.size() < 3:
-		var remaining_weapons: Array = weapon_pool.filter(func(item: Resource) -> bool: return item not in pool)
-		remaining_weapons.shuffle()
-		pool.append_array(remaining_weapons.slice(0, 3 - pool.size()))
 	for item in Catalog.UPGRADES:
-		if int(dict_value(upgrade_counts, item.id, 0)) < item.limit and (item.stat != "heal" or health < max_health):
+		var weapon_prefix: String = String(item.id).get_slice("_", 0)
+		var matches_weapon: bool = weapon_prefix not in ["pulse", "scatter", "lance"] or weapon_prefix == String(weapon.id)
+		if matches_weapon and int(dict_value(upgrade_counts, item.id, 0)) < item.limit:
 			pool.append(item)
-	if pool.size() < 3:
-		pool.shuffle()
+	pool.shuffle()
 	offers = pool.slice(0, 3)
 	if offers.is_empty():
 		return
@@ -495,17 +563,7 @@ func apply_upgrade(index: int) -> void:
 	if state != State.UPGRADE or index < 0 or index >= offers.size():
 		return
 	var item: Resource = offers[index]
-	if item.core_type == "weapon":
-		secondary_weapons[item.weapon_id] = mini(5, int(dict_value(secondary_weapons, item.weapon_id, 0)) + 1)
-		upgrade_counts[item.id] = secondary_weapons[item.weapon_id]
-		offers = []
-		state = State.PLAYING
-		get_tree().paused = false
-		hud.close_overlay()
-		sound.play("upgrade")
-		return
-	else:
-		upgrade_counts[item.id] = int(dict_value(upgrade_counts, item.id, 0)) + 1
+	upgrade_counts[item.id] = int(dict_value(upgrade_counts, item.id, 0)) + 1
 	match item.stat:
 		"max_hp":
 			max_health += item.amount
@@ -513,7 +571,7 @@ func apply_upgrade(index: int) -> void:
 		"heal": health = minf(max_health, health + item.amount)
 		"speed": player.speed += item.amount
 		"haste": stats.haste += 1
-		_: stats[item.stat] += item.amount
+		_: stats[item.stat] = dict_value(stats, item.stat, 0.0) + item.amount
 	offers = []
 	state = State.PLAYING
 	get_tree().paused = false
@@ -527,11 +585,13 @@ func finish(victory: bool) -> void:
 	state = State.ENDED
 	player.active = false
 	if not test_mode:
-		profile.finish_run(won, run_time, kills)
+		profile.finish_run(won, run_time, kills, run_gold, run_cores, director.boss_defeated, circuits_closed, enemies_captured)
 	sound.play("win" if won else "lose")
 	hud.show_result()
 
 func _draw() -> void:
+	if circuit != null:
+		circuit.draw(self, reduced_effects)
 	if art != null:
 		art.draw_projectiles(self)
 	if combat == null:

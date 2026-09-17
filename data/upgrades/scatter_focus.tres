@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "scatter_focus"
+title_vi = "Tâm hội tụ"
+title_en = "Scatter Focus"
+description_vi = "Mục tiêu gần tâm vòng nhận thêm sát thương."
+description_en = "Targets near the circuit center take more damage."
+stat = "scatter_focus"
+amount = 1.0
+limit = 3

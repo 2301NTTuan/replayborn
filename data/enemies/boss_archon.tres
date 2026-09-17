@@ -3,8 +3,8 @@
 [resource]
 script = ExtResource("1")
 id = "boss_archon"
-title_vi = "Chấp Chính Nhân Hồi Ức"
-title_en = "Echo Archon"
+title_vi = "Chấp Chính Nhân Lưu Trữ"
+title_en = "Archive Archon"
 health = 185.0
 speed = 82.0
 radius = 80.0

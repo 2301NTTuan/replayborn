@@ -88,7 +88,7 @@ func fire(target: Node2D, delta: float) -> Array:
 			"position": muzzle, "velocity": direction.rotated(angle) * weapon.speed * (1 + stats.bullet_speed),
 			"damage": weapon.damage * 1.5 * (1 + stats.damage) * (2.0 if randf() < stats.crit else 1.0),
 			"pierce": weapon.pierce + int(stats.pierce), "life": weapon.lifetime * (1 + stats.lifetime),
-			"echo_multiplier": 1 + stats.echo_power, "ghost": false
+			"ghost": false
 		}
 		result.append(shot.duplicate(true))
 		add_shot(shot)
@@ -154,14 +154,11 @@ func advance(delta: float) -> void:
 		contacts.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.distance < b.distance)
 		for contact in contacts:
 			var enemy: Node2D = contact.enemy
-			enemy.health -= bullet.damage
-			enemy.flash = 0.09
+			game.damage_enemy(enemy, float(bullet.damage), "weapon")
 			bullet.hit.append(enemy.serial)
 			game.sound.play("hit")
 			if not game.reduced_effects:
 				add_effect({"position": enemy.position, "life": 0.18})
-			if enemy.health <= 0:
-				game.kill_enemy(enemy)
 			if int(_dict_value(bullet, "pierce", 0)) <= 0:
 				bullet.life = 0
 				break
@@ -177,15 +174,6 @@ func advance(delta: float) -> void:
 		if closest.distance_squared_to(game.player.position) < 33.0 * 33.0:
 			game.take_damage(bullet.damage)
 			bullet.life = 0
-		else:
-			for echo in game.echoes:
-				if echo.dead or echo.hurt_time > 0.0:
-					continue
-				var echo_closest := Geometry2D.get_closest_point_to_segment(echo.position, previous, bullet.position)
-				if echo_closest.distance_squared_to(echo.position) < 33.0 * 33.0:
-					game.take_echo_damage(echo, bullet.damage)
-					bullet.life = 0
-					break
 		if bullet.life <= 0 or not game.ARENA.has_point(bullet.position):
 			hostile.remove_at(index)
 	for index in range(enemy_zones.size() - 1, -1, -1):
@@ -215,8 +203,7 @@ func advance(delta: float) -> void:
 					# The blast hits every enemy in range, including a boss.
 					for enemy in game.enemies:
 						if not enemy.dead and enemy.position.distance_to(effect.position) <= float(effect.radius):
-							enemy.health -= float(effect.damage)
-							if enemy.health <= 0: game.kill_enemy(enemy)
+							game.damage_enemy(enemy, float(effect.damage), "weapon")
 					effect.detonated = true
 					effect.life = 0.34
 					game.sound.play("secondary_mine")
@@ -234,10 +221,7 @@ func _detonate_drone(missile: Dictionary) -> void:
 		if enemy.dead or enemy.spawn_protection > 0.0:
 			continue
 		if enemy.position.distance_to(missile.position) <= radius + enemy.radius:
-			enemy.health -= damage
-			enemy.flash = 0.12
-			if enemy.health <= 0.0:
-				game.kill_enemy(enemy)
+			game.damage_enemy(enemy, damage, "weapon")
 	add_effect({"position": missile.position, "life": 0.32, "drone_burst": true, "radius": radius})
 	game.sound.play("hit")
 
@@ -254,7 +238,7 @@ func advance_secondary(delta: float) -> void:
 			continue
 		match weapon_id:
 			"boomerang":
-				add_shot({"position": game.player.position, "velocity": game.player.position.direction_to(target.position) * (440.0 + level * 35.0), "damage": 3.0 + level * 2.0, "pierce": 1 + level, "life": 1.2 + level * 0.12, "echo_multiplier": 1.0, "ghost": false, "secondary_id": weapon_id})
+				add_shot({"position": game.player.position, "velocity": game.player.position.direction_to(target.position) * (440.0 + level * 35.0), "damage": 3.0 + level * 2.0, "pierce": 1 + level, "life": 1.2 + level * 0.12, "ghost": false, "secondary_id": weapon_id})
 				game.sound.play("secondary_boomerang")
 				secondary_cooldowns[weapon_id] = maxf(0.8, 1.8 - level * 0.16)
 			"orbit":
@@ -274,7 +258,7 @@ func advance_secondary(delta: float) -> void:
 					var drone_angle: float = game.run_time * 1.35 + TAU * drone_index / drone_count
 					var drone_pos: Vector2 = game.player.position + Vector2.from_angle(drone_angle) * (54.0 + level * 3.0) + Vector2(0, -18)
 					var drone_velocity: Vector2 = drone_pos.direction_to(drone_target.position) * (590.0 + level * 45.0)
-					add_shot({"position": drone_pos, "velocity": drone_velocity, "damage": 7.0 + level * 3.5, "life": 1.8, "echo_multiplier": 1.0, "ghost": false, "secondary_id": weapon_id, "drone_missile": true, "homing": true, "target": drone_target, "impact_radius": 46.0 + level * 7.0, "drone_level": level})
+					add_shot({"position": drone_pos, "velocity": drone_velocity, "damage": 7.0 + level * 3.5, "life": 1.8, "ghost": false, "secondary_id": weapon_id, "drone_missile": true, "homing": true, "target": drone_target, "impact_radius": 46.0 + level * 7.0, "drone_level": level})
 					add_effect({"position": drone_pos, "end": drone_target.position, "life": 0.12, "drone_launch": true})
 				game.sound.play("secondary_drone")
 				secondary_cooldowns[weapon_id] = maxf(0.35, 1.25 - level * 0.12)

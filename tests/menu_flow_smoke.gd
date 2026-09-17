@@ -17,12 +17,14 @@ func run() -> void:
 	var menu = load("res://scenes/menu.tscn").instantiate()
 	root.add_child(menu)
 	await process_frame
-	for page in [menu.show_armory, menu.show_player_upgrades, menu.show_settings, menu.show_help, menu.show_credits, menu.show_home]:
+	for page in [menu.show_armory, menu.show_player_upgrades, menu.show_settings, menu.show_help, menu.show_credits]:
 		page.call()
 		check(menu.body.get_child_count() > 0, "menu page builds controls")
+	menu.show_home()
+	check(is_instance_valid(menu.home_deck) and menu.home_deck.get_child_count() > 0, "lobby home builds its deck")
 	profile.data.language = "en"
 	menu.show_home()
-	check(menu.body.get_child_count() > 0, "English menu rebuilds")
+	check(is_instance_valid(menu.home_deck) and menu.home_deck.get_child_count() > 0, "English lobby rebuilds")
 	profile.data.language = original_language
 	menu.free()
 	await process_frame

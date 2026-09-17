@@ -6,6 +6,7 @@ var profile: Node
 var body: VBoxContainer
 var back_button: Button
 var subpage_active: bool = false
+var home_deck: Control
 
 func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
 	return source[key] if source.has(key) else fallback
@@ -50,57 +51,89 @@ func _draw() -> void:
 
 func show_home() -> void:
 	UI.clear(body)
+	body.hide()
+	if is_instance_valid(home_deck): home_deck.queue_free()
+	home_deck = Control.new()
+	home_deck.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(home_deck)
 	subpage_active = false
 	queue_redraw()
 	back_button.hide()
-	UI.caption(body, t("run_dock"), true)
-	var status := UI.card(body, Color("2a4058"))
-	UI.label(status, t("profile"), 18, true)
-	UI.label(status, "◆ %d   ◈ %d" % [profile.data.gold, profile.data.upgrade_core], 24, true)
-	var record_label := UI.label(status, t("records") % [profile.data.runs, profile.data.wins, profile.data.kills], 22, true)
-	record_label.add_theme_color_override("font_color", Color("a9c2d8"))
-	if not profile.warning.is_empty():
-		UI.label(body, t(profile.warning), 24, true)
-	UI.primary_button(body, "▶  " + t("play"), func() -> void: launch(false), 98).grab_focus()
-	UI.button(body, "⌁  " + t("armory"), show_armory, 70)
-	UI.button(body, "⬆  " + t("meta_upgrades"), show_player_upgrades, 70)
-	UI.button(body, "◎  " + t("practice"), func() -> void: launch(true), 70)
-	UI.button(body, "⚙  " + t("settings"), show_settings, 70)
-	UI.button(body, "?  " + t("help"), show_help, 70)
-	UI.danger_button(body, t("quit"), func() -> void: get_tree().quit(), 64)
-	UI.label(body, "0.5.0-alpha.1  ·  " + t("offline"), 20, true)
+	var top := Panel.new()
+	top.position = Vector2(42, 42); top.size = Vector2(996, 112)
+	top.add_theme_stylebox_override("panel", UI.box(Color("071625", 0.9), 16, Color("2d6279"), 1)); home_deck.add_child(top)
+	var profile_label := UI.label(top, "ASTRIA  ·  " + t("runner_ready"), 20)
+	profile_label.position = Vector2(28, 26); profile_label.size = Vector2(430, 56)
+	var currency := UI.label(top, "%d GOLD   %d CORE" % [profile.data.gold, profile.data.upgrade_core], 20, true)
+	currency.position = Vector2(540, 26); currency.size = Vector2(320, 56)
+	var settings := UI.button(top, t("settings"), show_settings, 58)
+	settings.position = Vector2(860, 24); settings.size = Vector2(112, 62); settings.add_theme_font_size_override("font_size", 16)
+	var mission := UI.label(home_deck, "SIGNAL GATE  ·  LEVEL 1", 22, true)
+	mission.position = Vector2(160, 650); mission.size = Vector2(760, 42); mission.add_theme_color_override("font_color", Color("72f6d4"))
+	var play := UI.primary_button(home_deck, t("play"), func() -> void: launch(false), 112)
+	play.position = Vector2(126, 704); play.size = Vector2(828, 112); play.add_theme_font_size_override("font_size", 34); play.grab_focus()
+	var practice := UI.button(home_deck, t("practice"), func() -> void: launch(true), 64)
+	practice.position = Vector2(330, 834); practice.size = Vector2(420, 64)
+	var nav := HBoxContainer.new()
+	nav.position = Vector2(48, 1700); nav.size = Vector2(984, 116); nav.add_theme_constant_override("separation", 16); home_deck.add_child(nav)
+	for entry in [[t("armory"), show_armory], [t("meta_upgrades"), show_player_upgrades], [t("practice"), func() -> void: launch(true)], [t("help"), show_help]]:
+		var nav_button := UI.button(nav, entry[0], entry[1], 104)
+		nav_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nav_button.add_theme_font_size_override("font_size", 18)
+	var records := UI.label(home_deck, t("records") % [profile.data.runs, profile.data.wins, profile.data.kills], 18, true)
+	records.position = Vector2(120, 1580); records.size = Vector2(840, 30); records.add_theme_color_override("font_color", Color("a9c2d8"))
+
+func begin_subpage() -> void:
+	if is_instance_valid(home_deck): home_deck.queue_free()
+	body.show()
 
 func show_player_upgrades() -> void:
+	begin_subpage()
 	UI.clear(body)
 	show_back_button()
 	var header := UI.card(body, Color("ffd166"))
 	UI.label(header, t("meta_upgrades"), 38, true)
-	UI.label(body, "◆ %d   ◈ %d" % [profile.data.gold, profile.data.upgrade_core], 23, true)
+	UI.caption(body, "GOLD %d   ·   CORE %d" % [profile.data.gold, profile.data.upgrade_core], true)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 18)
+	grid.add_theme_constant_override("v_separation", 18)
+	body.add_child(grid)
 	var labels := {"hp": t("meta_hp"), "damage": t("meta_damage"), "armor": t("meta_armor"), "haste": t("meta_haste")}
 	for stat in ["hp", "damage", "armor", "haste"]:
 		var level: int = int(dict_value(profile.data.meta_upgrades, stat, 0))
 		var cost: Dictionary = profile.meta_cost(stat)
-		var card := UI.card(body, Color("315976"))
-		UI.label(card, "%s  ·  %s %d/10" % [labels[stat], t("level_word"), level], 24, true)
-		var buy := UI.button(card, "%s  ·  ◆ %d + ◈ %d" % [t("upgrade_action"), cost.gold, cost.core], func() -> void:
+		var card := UI.card(grid, [Color("ff647b"), Color("ffd26a"), Color("72b8ff"), Color("72f6d4")][["hp", "damage", "armor", "haste"].find(stat)])
+		card.get_parent().custom_minimum_size = Vector2(430, 238)
+		UI.caption(card, "%s  %d/10" % [t("level_word"), level], true)
+		UI.label(card, labels[stat], 23, true)
+		UI.label(card, "NEXT  ·  ◆ %d  ◈ %d" % [cost.gold, cost.core], 18, true)
+		var buy := UI.button(card, t("upgrade_action"), func() -> void:
 			if profile.upgrade_meta(stat):
 				show_player_upgrades(), 70)
 		buy.disabled = level >= 10 or profile.data.gold < cost.gold or profile.data.upgrade_core < cost.core
 
 func show_armory() -> void:
+	begin_subpage()
 	UI.clear(body)
 	show_back_button()
 	var header := UI.card(body, Color("55ebd2"))
 	UI.label(header, t("armory"), 38, true)
+	var rack := HBoxContainer.new()
+	rack.add_theme_constant_override("separation", 16)
+	body.add_child(rack)
 	var names := [t("pulse"), t("scatter"), t("lance")]
 	var finishers := [t("pulse_finisher"), t("scatter_finisher"), t("lance_finisher")]
 	for index in range(3):
 		var weapon_index: int = index
 		var unlocked: bool = bool(profile.data.weapon_unlocks[index])
 		var selected: bool = int(profile.data.weapon) == index
-		var card := UI.card(body, Color("55ebd2") if selected else Color("315976"))
-		UI.label(card, names[index], 30, true)
-		UI.label(card, finishers[index], 21)
+		var card := UI.card(rack, Color("55ebd2") if selected else Color("315976"))
+		card.get_parent().custom_minimum_size = Vector2(295, 510)
+		UI.caption(card, "WEAPON %02d" % (index + 1), true)
+		UI.label(card, names[index], 28, true)
+		UI.label(card, "AUTO FIRE", 17, true)
+		UI.label(card, finishers[index], 19)
 		if unlocked:
 			var select := UI.button(card, t("selected") if selected else t("select"), func() -> void:
 				profile.setting("weapon", weapon_index)
@@ -114,6 +147,7 @@ func launch(practice: bool) -> void:
 	get_tree().change_scene_to_file("res://scenes/main.tscn")
 
 func show_settings() -> void:
+	begin_subpage()
 	UI.clear(body)
 	show_back_button()
 	var header := UI.card(body, Color("55ebd2"))
@@ -126,6 +160,7 @@ func show_settings() -> void:
 	UI.danger_button(body, t("reset_progress"), confirm_reset_progress, 64)
 
 func show_credits() -> void:
+	begin_subpage()
 	UI.clear(body)
 	show_back_button()
 	var header := UI.card(body, Color("55ebd2"))
@@ -156,12 +191,17 @@ func confirm_reset_progress_final() -> void:
 	final_dialog.popup_centered(Vector2(760, 300))
 
 func show_help() -> void:
+	begin_subpage()
 	UI.clear(body)
 	show_back_button()
 	var header := UI.card(body, Color("55ebd2"))
 	UI.label(header, t("help"), 38, true)
-	var guide := UI.card(body, Color("315976"))
-	UI.label(guide, t("help_body"), 23)
+	var steps := [["01", "MOVE", "Drag anywhere to run."], ["02", "AUTO FIRE", "Weapon locks the closest target."], ["03", "TIME CIRCUIT", "Cross your Memory trail to close a circuit."], ["04", "CHRONO SHIFT", "Dash through danger and cut time."], ["05", "UPGRADE", "Choose a core after collecting XP."]]
+	for step in steps:
+		var card := UI.card(body, Color("72f6d4") if step[0] in ["03", "04"] else Color("315976"))
+		UI.caption(card, step[0], true)
+		UI.label(card, step[1], 25, true)
+		UI.label(card, step[2], 19, true)
 
 func show_back_button() -> void:
 	subpage_active = true

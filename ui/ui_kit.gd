@@ -74,6 +74,12 @@ static func button(parent: Node, value: String, callback: Callable, height: floa
 	item.custom_minimum_size.y = height
 	item.add_theme_font_size_override("font_size", 25)
 	item.pressed.connect(callback)
+	item.button_down.connect(func() -> void:
+		var press := item.create_tween()
+		press.tween_property(item, "scale", Vector2(0.96, 0.96), 0.06))
+	item.button_up.connect(func() -> void:
+		var release := item.create_tween()
+		release.tween_property(item, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT))
 	parent.add_child(item)
 	return item
 

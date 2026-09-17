@@ -1,6 +1,7 @@
 extends CanvasLayer
 const UI = preload("res://ui/ui_kit.gd")
 const Joystick = preload("res://ui/joystick.gd")
+const CircuitRing = preload("res://ui/components/circuit_ring.gd")
 var game: Node
 var root_control: Control
 var stats_label: Label
@@ -12,6 +13,7 @@ var xp_label: Label
 var boss_label: Label
 var boss_progress: ProgressBar
 var debug_label: Label
+var circuit_ring: Control
 var progress: ProgressBar
 var xp_progress: ProgressBar
 var health_bar: ProgressBar
@@ -178,6 +180,10 @@ func bind_game(owner_game: Node) -> void:
 	memory_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	memory_label.clip_text = true
 	memory_label.add_theme_color_override("font_color", Color("72f6d4"))
+	circuit_ring = CircuitRing.new()
+	circuit_ring.position = Vector2(640, 10)
+	circuit_ring.size = Vector2(62, 62)
+	run_panel.add_child(circuit_ring)
 	pause_button = compact_pause_button(run_panel)
 	joystick = Joystick.new()
 	joystick.name = "Joystick"
@@ -282,6 +288,7 @@ func refresh() -> void:
 	xp_progress.max_value = game.xp_to_next
 	xp_progress.value = game.run_xp
 	memory_label.text = t("memory_ready") if game.circuit.snap_point != Vector2.INF else "%d%%" % roundi(game.circuit.memory_ratio(game.run_time) * 100.0)
+	circuit_ring.set_state(game.circuit.memory_ratio(game.run_time), game.circuit.snap_point != Vector2.INF)
 	if game.overdrive_left > 0.0:
 		combo_label.text = "✦ %s  %.1fs" % [t("overdrive"), game.overdrive_left]
 		combo_label.add_theme_color_override("font_color", Color("ff9d5e"))

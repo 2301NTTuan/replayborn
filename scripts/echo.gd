@@ -19,11 +19,12 @@ var dead: bool = false
 var spawn_protection: float = 1.5
 
 func setup(recording: Dictionary, game: Node, serial: int) -> void:
-	tape = recording
+	tape = recording.duplicate(true)
 	arena_game = game
 	number = serial
-	position = tape.positions[0]
-	tint = [Color("ff4fd8"), Color("ffd166"), Color("63f6ff")][game.profile.data.palette]
+	position = tape.positions[0] if tape.has("positions") and tape.positions.size() > 0 else Vector2.ZERO
+	# Distinct tints plus the serial label keep four simultaneous Echoes legible.
+	tint = [Color("ff4fd8"), Color("ffd166"), Color("63f6ff"), Color("a78bfa")][(serial - 1) % 4]
 	character_index = game.profile.data.character
 	gender = character_index % 2
 	archetype = character_index / 2
@@ -31,7 +32,7 @@ func setup(recording: Dictionary, game: Node, serial: int) -> void:
 	health = max_health
 
 func advance() -> bool:
-	if tape.is_empty():
+	if tape.is_empty() or not tape.has("positions") or tape.positions.size() < 2:
 		return true
 	age += 1.0 / 60.0
 	hurt_time = maxf(0.0, hurt_time - 1.0 / 60.0)
@@ -46,7 +47,7 @@ func advance() -> bool:
 		arena_game.combat.add_shot(shot)
 		shot_index += 1
 	tick += 1
-	if tick == 900:
+	if tick >= tape.positions.size() - 1:
 		tick = 0
 		shot_index = 0
 	queue_redraw()

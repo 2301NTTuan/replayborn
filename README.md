@@ -1,56 +1,21 @@
-# Replayborn production candidate
+# Replayborn 0.5.0-alpha.1
 
-Requires Godot 4.7.2, GDScript, Mobile renderer.
+Godot 4.7.2 / GDScript / Mobile renderer. This offline Android-first vertical slice ships Astria, Neon Ruins, three weapon data sets, five regular enemy types, two elite tiers, fifteen in-run upgrades, and five bosses.
 
-## Run
+## Play
 
-Import project.godot in Godot 4.7.2 and press F6 for the main scene or F5 for the project.
-The reference canvas is 1080 x 1920; desktop window is 540 x 960 with preserved aspect ratio.
+Open `project.godot` in Godot 4.7.2 and run the project. Touch-drag below the HUD (or WASD) moves Astria; targeting and firing are automatic. A normal Neon Ruins run has five two-minute levels followed by their bosses, intended to last about 8–12 minutes including combat. Practice remains a five-minute fast test.
 
-- WASD: move the green player within the outlined arena.
-- Automatic fire targets the closest red enemy.
-- Enemies chase the player; contact costs 10 HP with 0.7 seconds between hits.
-- Every 15 seconds, the recorded positions and shot times/origins/directions become a blue echo.
-- Echoes loop their own recordings and deal the same damage as the player. They do not retarget recorded shots or take damage.
-- At four echoes, the next recording replaces the oldest echo.
-- R: restart at any time, including after game over.
+Every 900 physics ticks, a self-contained Echo tape is created. Echoes replay movement and recorded projectile settings forever until their HP is depleted. Up to four coexist; creating a fifth safely removes the oldest.
 
-## Structure
+The release has no ads, IAP, online services, or Internet permission. Gold/XP earned in combat stays in RAM and persists at safe boundaries such as finishing a run, returning to menu, or app focus loss. Profiles retain temporary-file, backup, and corrupt-save recovery behavior.
 
-- scenes/main.tscn: main scene, CharacterBody2D player and HUD instance.
-- scripts/: arena/combat/recording coordinator, player, enemy and echo behavior.
-- ui/: HUD scene and script.
-- tests/prototype_smoke.gd: headless behavior checks.
-
-## Verification
-
-With your Godot executable:
+## Validation
 
 ```text
-godot --headless --path . --editor --quit
-godot --headless --path . --script res://tests/prototype_smoke.gd
-godot --headless --path . --quit-after 180
+powershell -ExecutionPolicy Bypass -File tools/validate.ps1
+godot --headless --path . --script res://tools/stress_probe.gd
+godot --headless --path . --script res://tools/balance_probe.gd
 ```
 
-Validated using Godot 4.7.2: project import, all scripts/scenes loaded, main-scene runtime,
-input/movement, arena bounds, five recording cycles, four-echo limit, replay fire/loop and game over.
-Headless checks do not validate GPU rendering or visual appearance.
-
-No external assets, networking, advertising or purchases are used by gameplay.
-
-## Production work
-
-See docs/PRODUCTION_PLAN.md for scope, milestones and progress. ESC or PAUSE opens the pause menu; RESUME continues and RESTART starts a new run. Losing app focus pauses automatically. Run tests/session_smoke.gd headlessly to verify touch and session controls.
-
-Touch control is now invisible and dynamic: touch and drag anywhere inside the arena below the HUD. No joystick graphic appears and no playfield space is reserved.
-
-The menu separates character and map selection. Each screen uses visual thumbnails: 10 character cards (five archetypes with male/female silhouettes) and 10 map cards showing their palette, motif, and 10-level/10-boss structure.
-
-The meta layer now includes five equipment slots, five rarity tiers, slot shards, shared upgrade cores, gold, missions, free chest cooldowns and paid-with-gold chest variants. Real-money payment is intentionally not connected; the shop marks that integration point for a future provider decision.
-
-
-The M1 run lasts 5 minutes. Runners enter after 20 seconds; chargers after 60 seconds telegraph before dashing. Every 30 seconds choose fire rate, movement speed or healing. Survive to 05:00 to win. Run tests/run_smoke.gd for progression checks; this test bypasses player damage and is not a balance test.
-
-
-Pause now includes a short gameplay guide, Mute sound and Reduce effects. These settings currently apply to the current run only. Seven synthesized cues require no external assets. Headless tests verify wiring and cleanup, not perceived audio/visual quality.
-
+Release exports use Godot's standard installed export templates. Debug APK is for internal testing; Android release output is an unsigned AAB and requires a separately managed keystore.

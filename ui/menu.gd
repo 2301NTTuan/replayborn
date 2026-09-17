@@ -1,9 +1,6 @@
 extends Control
 const UI = preload("res://ui/ui_kit.gd")
 const DISPLAY_FONT = preload("res://assets/fonts/CascadiaCode.ttf")
-const Catalog = preload("res://scripts/data/catalog.gd")
-const CharacterThumb = preload("res://ui/character_thumb.gd")
-const MapThumb = preload("res://ui/map_thumb.gd")
 const HEROINE_SHEET = preload("res://assets/original_v1/astria_run_v1.png")
 var profile: Node
 var body: VBoxContainer
@@ -41,7 +38,7 @@ func _draw() -> void:
 	draw_rect(Rect2(42, 720, 996, 1140), Color("24384f", 0.9), false, 1)
 	draw_string(DISPLAY_FONT, Vector2(64, 156), "REPLAYBORN", HORIZONTAL_ALIGNMENT_LEFT, -1, 76, Color("edf6ff"))
 	draw_string(DISPLAY_FONT, Vector2(68, 205), "ECHO SURVIVAL  /  MOBILE BUILD", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("72f6d4"))
-	draw_string(DISPLAY_FONT, Vector2(68, 330), "VOID GARDEN", HORIZONTAL_ALIGNMENT_LEFT, -1, 48, Color("edf6ff"))
+	draw_string(DISPLAY_FONT, Vector2(68, 330), "NEON RUINS", HORIZONTAL_ALIGNMENT_LEFT, -1, 48, Color("edf6ff"))
 	draw_string(DISPLAY_FONT, Vector2(70, 374), "5 LEVELS  •  5 BOSSES  •  OFFLINE", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("8fa7ba"))
 	draw_rect(Rect2(64, 470, 438, 112), Color("0c1624", 0.82))
 	draw_rect(Rect2(64, 470, 438, 112), Color("263c55"), false, 1)
@@ -68,7 +65,7 @@ func show_home() -> void:
 	UI.button(body, "⚙  " + t("settings"), show_settings, 70)
 	UI.button(body, "?  " + t("help"), show_help, 70)
 	UI.danger_button(body, t("quit"), func() -> void: get_tree().quit(), 64)
-	UI.label(body, "1.0.0-rc.1  ·  OFFLINE", 20, true)
+	UI.label(body, "0.5.0-alpha.1  ·  OFFLINE", 20, true)
 
 func show_player_upgrades() -> void:
 	UI.clear(body)
@@ -122,17 +119,17 @@ func open_shop_chest(slot: String, rarity_index: int) -> void:
 			show_shop()
 		"gold":
 			show_shop()
-		"payment":
-			show_payment_popup(slot, rarity_index, int(dict_value(result, "cost", 0)))
+		"insufficient_gold":
+			show_insufficient_gold(int(dict_value(result, "cost", 0)))
 		_:
 			show_shop()
 
-func show_payment_popup(slot: String, rarity_index: int, cost: int) -> void:
+func show_insufficient_gold(cost: int) -> void:
 	var dialog := ConfirmationDialog.new()
-	dialog.title = "Mua key mở rương"
-	dialog.dialog_text = "Bạn không đủ vàng để mua key %s %s (cần %d vàng).\nPayment thật sẽ được tích hợp ở bước phát hành." % [slot, profile.RARITIES[rarity_index], cost]
-	dialog.ok_button_text = "Mua key qua payment"
-	dialog.cancel_button_text = "Để sau"
+	dialog.title = "Không đủ vàng"
+	dialog.dialog_text = "Bạn cần %d vàng để mở rương này." % cost
+	dialog.ok_button_text = "Đã hiểu"
+	dialog.cancel_button_text = "Đóng"
 	add_child(dialog)
 	dialog.confirmed.connect(func() -> void:
 		dialog.queue_free()
@@ -165,37 +162,6 @@ func show_missions() -> void:
 	else:
 		UI.label(body, "Thưởng: 1000 vàng + 100 lõi" if not missions.claimed_wins else "Đã nhận", 22)
 
-func show_character_select() -> void:
-	UI.clear(body)
-	show_back_button()
-	var header := UI.card(body, Color("55ebd2"))
-	UI.label(header, t("character_menu"), 38, true)
-	UI.label(body, "5 archetype × Nam/Nữ · chỉ số giống nhau, silhouette khác nhau", 23, true)
-	for index in range(10):
-		var thumb := CharacterThumb.new()
-		thumb.custom_minimum_size = Vector2(0, 190)
-		thumb.setup(index, index == profile.data.character)
-		body.add_child(thumb)
-		thumb.gui_input.connect(func(event: InputEvent) -> void:
-			if event is InputEventMouseButton and event.pressed:
-				profile.setting("character", index)
-				show_character_select())
-
-func show_map_select() -> void:
-	UI.clear(body)
-	show_back_button()
-	var header := UI.card(body, Color("55ebd2"))
-	UI.label(header, t("map_menu"), 38, true)
-	UI.label(body, "10 map · mỗi map 5 level · 3 loại quái/mức · 5 boss riêng", 23, true)
-	for index in range(Catalog.MAPS.size()):
-		var thumb := MapThumb.new()
-		thumb.custom_minimum_size = Vector2(0, 190)
-		thumb.setup(Catalog.MAPS[index], index == profile.data.map)
-		body.add_child(thumb)
-		thumb.gui_input.connect(func(event: InputEvent) -> void:
-			if event is InputEventMouseButton and event.pressed:
-				profile.setting("map", index)
-				show_map_select())
 
 func launch(practice: bool) -> void:
 	profile.practice = practice

@@ -1,6 +1,12 @@
-param([string]$Godot = 'C:\Users\tuann\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe')
+param([string]$Godot = '')
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
+if ([string]::IsNullOrWhiteSpace($Godot)) {
+    $Godot = (Get-Command godot, godot4 -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source)
+}
+if ([string]::IsNullOrWhiteSpace($Godot) -or -not (Test-Path $Godot)) {
+    throw 'Godot 4.7.2 was not found. Pass -Godot C:\path\to\Godot_v4.7.2-stable_win64_console.exe.'
+}
 $checks = @('tools/validate_resources.gd', 'tests/prototype_smoke.gd', 'tests/session_smoke.gd', 'tests/run_smoke.gd', 'tests/enemy_roster_smoke.gd')
 foreach ($check in $checks) {
     $output = & $Godot --headless --path $projectRoot --script "res://$check" 2>&1

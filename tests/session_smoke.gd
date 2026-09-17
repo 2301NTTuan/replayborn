@@ -58,6 +58,10 @@ func run() -> void:
 	economy.data.gold = 10000
 	var paid: Dictionary = economy.open_chest("VŨ KHÍ", 3, true)
 	check(not paid.is_empty() and paid.rarity == 3, "paid mythic chest")
+	economy.data.gold = 0
+	economy.data.chests["CỔ ĐẠI"].last_free = "used"
+	economy.data.chests["CỔ ĐẠI"].last_day = Time.get_unix_time_from_system() / 86400
+	check(economy.open_chest_with_priority("ÁO", 4).status == "insufficient_gold", "no payment fallback")
 	economy.queue_free()
 	# Test storage with an isolated path; never overwrite the real player profile.
 	var store = load("res://scripts/core/profile.gd").new()
@@ -74,6 +78,14 @@ func run() -> void:
 	corrupt.close()
 	store.load_profile()
 	check(is_equal_approx(store.data.volume, 0.25) and store.warning == "save_recovered", "backup recovery")
+	store.data = store.defaults()
+	store.data.equipment = {"ÁO": {"id": 3}}
+	store.data.shards = {"ÁO": "bad"}
+	store.data.chests = {"THƯỜNG": {}}
+	store.data.missions = {"kills": "bad"}
+	check(store.save_profile() == OK, "save malformed fixture")
+	store.load_profile()
+	check(store.data.equipment.has("GIÀY") and store.data.shards["ÁO"] is int, "malformed nested save is sanitized")
 	for suffix in ["", ".bak", ".tmp"]:
 		if FileAccess.file_exists(store.save_path + suffix):
 			DirAccess.remove_absolute(store.save_path + suffix)

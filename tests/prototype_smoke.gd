@@ -19,11 +19,8 @@ func run() -> void:
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame
-	check(game.Catalog.UPGRADES.size() == 15 and game.Catalog.WEAPONS.size() == 3 and game.Catalog.MAPS.size() == 10, "content counts")
-	for character_index in range(10):
-		game.player.configure_character(character_index)
-		check(game.player.archetype == character_index / 2 and game.player.gender == character_index % 2, "character variant %d" % character_index)
-	game.player.configure_character(0)
+	check(game.Catalog.UPGRADES.size() == 15 and game.Catalog.WEAPONS.size() == 3 and game.Catalog.MAPS.size() >= 1, "content counts")
+	check(game.profile.data.character == 0 and game.map_data == game.Catalog.MAPS[0], "vertical slice locks Astria and Neon Ruins")
 	game.sound.set_levels(0, 0)
 	game.director.spawn_left = INF
 	var before: Vector2 = game.player.position
@@ -59,9 +56,15 @@ func run() -> void:
 	for tick in range(899):
 		echo_finished = echo.advance()
 	check(not echo_finished and echo.tick == 0 and game.combat.friendly.size() == 2, "echo loops after one 15s replay")
-	for index in range(5):
+	for index in range(3):
 		game.create_echo()
-	check(game.echoes.size() == 1, "single echo cap")
+	check(game.echoes.size() == 4, "four echoes coexist")
+	var oldest = game.echoes[0]
+	game.create_echo()
+	check(game.echoes.size() == 4 and oldest.is_queued_for_deletion(), "fifth echo replaces oldest")
+	game.echoes[0].dead = true
+	game._physics_process(1.0 / 60.0)
+	check(game.echoes.size() == 3, "dead echo safely removed")
 	# Sweep test: fast bullets cannot tunnel through a target.
 	game.combat.friendly.clear()
 	enemy.health = 1

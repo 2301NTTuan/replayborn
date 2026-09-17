@@ -34,6 +34,34 @@ func default_shards() -> Dictionary:
 func default_chests() -> Dictionary:
 	return {"THƯỜNG": {"free_days": 1, "last_free": "", "gold": 100}, "HIẾM": {"free_days": 2, "last_free": "", "gold": 250}, "HUYỀN THOẠI": {"free_days": 4, "last_free": "", "gold": 600}, "MYTHIC": {"free_days": 7, "last_free": "", "gold": 1500}, "CỔ ĐẠI": {"free_days": 14, "last_free": "", "gold": 3500}}
 
+func safe_int(value: Variant, fallback: int, minimum: int = 0, maximum: int = 2147483647) -> int:
+	return clampi(int(value), minimum, maximum) if value is int or value is float else fallback
+
+func sanitize_nested_data() -> void:
+	var equipment_defaults := default_equipment()
+	var shard_defaults := default_shards()
+	var chest_defaults := default_chests()
+	if not data.equipment is Dictionary:
+		data.equipment = {}
+	if not data.shards is Dictionary:
+		data.shards = {}
+	if not data.chests is Dictionary:
+		data.chests = {}
+	if not data.missions is Dictionary:
+		data.missions = {}
+	for slot in SLOTS:
+		var raw_item: Variant = dict_value(data.equipment, slot, {})
+		var item: Dictionary = raw_item if raw_item is Dictionary else {}
+		var fallback: Dictionary = equipment_defaults[slot]
+		data.equipment[slot] = {"id": str(dict_value(item, "id", fallback.id)), "rarity": safe_int(dict_value(item, "rarity", 0), 0, 0, RARITIES.size() - 1), "level": safe_int(dict_value(item, "level", 1), 1, 1, 20), "shards": safe_int(dict_value(item, "shards", 0), 0), "equipped": bool(dict_value(item, "equipped", true))}
+		data.shards[slot] = safe_int(dict_value(data.shards, slot, shard_defaults[slot]), shard_defaults[slot])
+	for rarity in RARITIES:
+		var raw_chest: Variant = dict_value(data.chests, rarity, {})
+		var chest: Dictionary = raw_chest if raw_chest is Dictionary else {}
+		var fallback_chest: Dictionary = chest_defaults[rarity]
+		data.chests[rarity] = {"free_days": safe_int(dict_value(chest, "free_days", fallback_chest.free_days), fallback_chest.free_days, 1, 365), "last_free": str(dict_value(chest, "last_free", "")), "last_day": safe_int(dict_value(chest, "last_day", 0), 0), "gold": safe_int(dict_value(chest, "gold", fallback_chest.gold), fallback_chest.gold)}
+	data.missions = {"kills": safe_int(dict_value(data.missions, "kills", 0), 0), "wins": safe_int(dict_value(data.missions, "wins", 0), 0), "claimed_kills": bool(dict_value(data.missions, "claimed_kills", false)), "claimed_wins": bool(dict_value(data.missions, "claimed_wins", false))}
+
 func valid_profile(value: Variant) -> bool:
 	if not value is Dictionary or value.get("version") != SCHEMA:
 		return false
@@ -71,8 +99,8 @@ func load_profile() -> void:
 		data.best_seconds = clampf(data.best_seconds, 0, 86400)
 		data.palette = clampi(int(data.palette), 0, 2) if data.palette is float or data.palette is int else 0
 		data.weapon = clampi(int(data.weapon), 0, 2) if data.weapon is float or data.weapon is int else 0
-		data.character = clampi(int(data.character), 0, 9) if data.character is float or data.character is int else 0
-		data.map = clampi(int(data.map), 0, 9) if data.map is float or data.map is int else 0
+		data.character = 0
+		data.map = 0
 		if not palette_unlocked(data.palette):
 			data.palette = 0
 		selected_weapon = data.weapon
@@ -80,21 +108,9 @@ func load_profile() -> void:
 		if not data.has("meta_upgrades") or not data.meta_upgrades is Dictionary:
 			data.meta_upgrades = defaults().meta_upgrades
 		for stat in ["hp", "damage", "armor", "haste"]:
-			data.meta_upgrades[stat] = clampi(int(dict_value(data.meta_upgrades, stat, 0)), 0, 20)
+			data.meta_upgrades[stat] = safe_int(dict_value(data.meta_upgrades, stat, 0), 0, 0, 20)
 		data.upgrade_core = clampi(int(data.upgrade_core), 0, 2147483647) if data.upgrade_core is float or data.upgrade_core is int else 25
-		if not data.has("equipment") or not data.equipment is Dictionary:
-			data.equipment = default_equipment()
-		if not data.has("shards") or not data.shards is Dictionary:
-			data.shards = default_shards()
-		for slot in SLOTS:
-			if not data.equipment.has(slot):
-				data.equipment[slot] = default_equipment()[slot]
-			if not data.shards.has(slot):
-				data.shards[slot] = 10
-		if not data.has("chests"):
-			data.chests = default_chests()
-		if not data.has("missions"):
-			data.missions = defaults().missions
+		sanitize_nested_data()
 
 func palette_unlocked(index: int) -> bool:
 	return index == 0 or (index == 1 and data.kills >= 100) or (index == 2 and data.wins >= 1)
@@ -132,12 +148,13 @@ func setting(key: String, value: Variant) -> void:
 	save_profile()
 	settings_changed.emit()
 
-func add_rewards(gold: int, core: int, slot: String = "", shards: int = 0) -> void:
+func add_rewards(gold: int, core: int, slot: String = "", shards: int = 0, persist: bool = true) -> void:
 	data.gold += maxi(0, gold)
 	data.upgrade_core += maxi(0, core)
 	if slot in SLOTS:
 		data.shards[slot] = int(dict_value(data.shards, slot, 0)) + maxi(0, shards)
-	save_profile()
+	if persist:
+		save_profile()
 
 func upgrade_meta(stat: String) -> bool:
 	if stat not in ["hp", "damage", "armor", "haste"]:
@@ -215,7 +232,7 @@ func open_chest_with_priority(slot: String, rarity_index: int) -> Dictionary:
 	if data.gold >= cost:
 		var paid_item := open_chest(slot, rarity_index, true)
 		return {"status": "gold", "item": paid_item, "cost": cost}
-	return {"status": "payment", "cost": cost, "gold": data.gold}
+	return {"status": "insufficient_gold", "cost": cost, "gold": data.gold}
 
 func finish_run(won: bool, seconds: float, kills: int) -> void:
 	if practice:
@@ -224,7 +241,7 @@ func finish_run(won: bool, seconds: float, kills: int) -> void:
 	data.wins += 1 if won else 0
 	data.kills += kills
 	data.best_seconds = maxf(data.best_seconds, seconds)
-	data.missions.kills += kills
-	data.missions.wins += 1 if won else 0
-	add_rewards(kills * 2, kills, "", 0)
+	data.missions.kills = int(dict_value(data.missions, "kills", 0)) + kills
+	data.missions.wins = int(dict_value(data.missions, "wins", 0)) + (1 if won else 0)
+	add_rewards(kills * 2, kills, "", 0, false)
 	save_profile()

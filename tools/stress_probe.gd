@@ -8,7 +8,12 @@ func run() -> void:
 	root.add_child(game)
 	game.set_physics_process(false)
 	game.sound.set_levels(0, 0)
-	game.next_upgrade_tick = 999999
+	# Upgrades are XP-driven; this probe never collects XP.
+	for echo_index in range(4):
+		game.recorder.begin(game.player.position)
+		for tape_tick in range(900):
+			game.recorder.record(game.player.position + Vector2(tape_tick % 9, 0), [])
+		game.create_echo()
 	for index in range(70):
 		var enemy = game.spawn_enemy(game.Catalog.ENEMIES[index % 5])
 		enemy.health = 1000000
@@ -27,7 +32,7 @@ func run() -> void:
 		if tick > 60:
 			samples.append(Time.get_ticks_usec() - started)
 	samples.sort()
-	var report: Dictionary = {"enemies": 70, "friendly_cap": 600, "hostile_cap": 240, "median_cpu_us": samples[samples.size() / 2], "p95_cpu_us": samples[int(samples.size() * 0.95)], "max_cpu_us": samples.back(), "static_memory_bytes": Performance.get_monitor(Performance.MEMORY_STATIC), "draw_calls": Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)}
+	var report: Dictionary = {"echoes": game.echoes.size(), "enemies": 70, "friendly_cap": 600, "hostile_cap": 240, "median_cpu_us": samples[samples.size() / 2], "p95_cpu_us": samples[int(samples.size() * 0.95)], "max_cpu_us": samples.back(), "static_memory_bytes": Performance.get_monitor(Performance.MEMORY_STATIC), "draw_calls": Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)}
 	print(report)
 	var file := FileAccess.open("res://exports/qa/stress.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))

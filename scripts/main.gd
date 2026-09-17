@@ -187,7 +187,7 @@ func apply_settings() -> void:
 	if combat != null and reduced_effects:
 		combat.effects.clear()
 	for echo in echoes:
-		echo.tint = [Color("ff4fd8"), Color("ffd166"), Color("63f6ff")][profile.data.palette]
+		echo.tint = [Color("ff4fd8"), Color("ffd166"), Color("63f6ff"), Color("a78bfa")][(echo.number - 1) % 4]
 
 func begin_play() -> void:
 	if state != State.TUTORIAL:
@@ -212,14 +212,17 @@ func restart_run() -> void:
 	get_tree().reload_current_scene()
 
 func return_home() -> void:
+	profile.save_profile()
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/menu.tscn")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and is_node_ready() and state == State.PLAYING:
 		toggle_pause()
+		profile.save_profile()
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST and is_node_ready():
-		toggle_pause()
+		if state == State.PLAYING:
+			toggle_pause()
 
 func _physics_process(delta: float) -> void:
 	if state != State.PLAYING:
@@ -256,7 +259,7 @@ func _physics_process(delta: float) -> void:
 		var gold: Node2D = gold_orbs[index]
 		if gold.advance(delta):
 			if gold.collected:
-				profile.add_rewards(gold.value, 0)
+				profile.add_rewards(gold.value, 0, "", 0, false)
 				hud.show_pickup(gold.value, true)
 			gold.queue_free()
 			gold_orbs.remove_at(index)
@@ -275,9 +278,8 @@ func _physics_process(delta: float) -> void:
 		else:
 			art.update_echo(echo)
 	var fired: Array = combat.fire(nearest_enemy(), delta)
-	# Only record a new 15-second Echo after the current one has died. While an
-	# Echo is alive its tape loops and the Replay counter stays paused.
-	if echoes.is_empty() and recorder.record(player.position, fired):
+	# Each 15-second tape becomes an independent Echo; existing tapes loop.
+	if recorder.record(player.position, fired):
 		create_echo()
 		recorder.begin(player.position)
 	combat.advance(delta)
@@ -449,10 +451,11 @@ func gain_xp(amount: int) -> void:
 
 func create_echo() -> void:
 	sound.play("echo")
-	hud.announce("replace_echo" if not echoes.is_empty() else "new_echo")
-	if not echoes.is_empty():
+	hud.announce("replace_echo" if echoes.size() >= 4 else "new_echo")
+	if echoes.size() >= 4:
 		var oldest: Node = echoes.pop_front()
-		oldest.queue_free()
+		if is_instance_valid(oldest):
+			oldest.queue_free()
 	var echo = Echo.new()
 	echo_serial += 1
 	echo.setup(recorder.snapshot(), self, echo_serial)

@@ -1,9 +1,5 @@
 extends RefCounted
 
-const CHARACTERS := [
-    "vanguard_m", "vanguard_f", "runner_m", "runner_f", "tech_m", "tech_f",
-    "warden_m", "warden_f", "duelist_m", "duelist_f"
-]
 const ArenaMap = preload("res://scripts/visuals/arena_map.gd")
 
 var game: Node
@@ -21,11 +17,20 @@ func _dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant
 func setup() -> void:
     attach_player(game.player, int(game.profile.data.character))
     setup_map(String(game.map_data.id))
-    friendly_projectile = load("res://assets/replayborn/weapons/%s/projectile.png" % String(game.weapon.id))
-    hostile_projectile = load("res://assets/replayborn/weapons/hostile/projectile.png")
+    # Projectiles are procedural so the release does not depend on pack assets
+    # whose commercial license has not been established.
+    friendly_projectile = null
+    hostile_projectile = null
 
 func draw_projectiles(canvas: Node2D) -> void:
-    if friendly_projectile == null or hostile_projectile == null or game.combat == null:
+    if game.combat == null:
+        return
+    if friendly_projectile == null or hostile_projectile == null:
+        for bullet in game.combat.friendly:
+            if String(_dict_value(bullet, "secondary_id", "")) == "":
+                canvas.draw_circle(bullet.position, 7.0 if not bullet.ghost else 5.0, Color("a8edff", 0.72) if bullet.ghost else Color("ffe59c"))
+        for bullet in game.combat.hostile:
+            canvas.draw_circle(bullet.position, 9.0, Color("ff536d"))
         return
     var fsize := Vector2(28, 28)
     for bullet in game.combat.friendly:
@@ -50,15 +55,8 @@ func attach_player(player: Node2D, index: int) -> void:
         player.add_child(anime_sprite)
         anime_sprite.play("idle")
         return
-    var sprite := AnimatedSprite2D.new()
-    sprite.name = "ArtVisual"
-    sprite.sprite_frames = load("res://assets/replayborn/characters/%s/sprite_frames.tres" % CHARACTERS[clampi(index, 0, 9)])
-    sprite.position = Vector2(0, -4)
-    sprite.scale = Vector2(0.82, 0.82)
-    sprite.z_index = 10
-    player.add_child(sprite)
-    sprite.play("idle")
-    _attach_equipment_overlays(player)
+    # The vertical slice ships Astria only; future character art remains outside
+    # the release runtime until it has gameplay support and clearance.
 
 func _attach_equipment_overlays(player: Node2D) -> void:
     var rarity_names := ["common", "rare", "legendary", "mythic", "ancient"]
@@ -155,19 +153,7 @@ func attach_enemy(enemy: Node2D) -> void:
         enemy.add_child(anime_sprite)
         anime_sprite.play("run")
         return
-    var sprite := AnimatedSprite2D.new()
-    sprite.name = "ArtVisual"
-    sprite.sprite_frames = load("res://assets/replayborn/enemies/%s/sprite_frames.tres" % id)
-    var base_size := 72.0 if id == "boss" else 48.0
-    var s := clampf(enemy.radius / base_size * 1.7, 0.65, 1.65)
-    sprite.scale = Vector2(s, s)
-    sprite.z_index = 8
-    if enemy.elite == 1:
-        sprite.modulate = Color(1.15, 1.05, 0.75, 1.0)
-    elif enemy.elite == 2:
-        sprite.modulate = Color(0.75, 1.15, 1.15, 1.0)
-    enemy.add_child(sprite)
-    sprite.play("run")
+    # Non-roster legacy definitions render procedurally in enemy.gd.
 
 func update_enemy(enemy: Node2D) -> void:
     var visual := enemy.get_node_or_null("ArtVisual") as Node2D

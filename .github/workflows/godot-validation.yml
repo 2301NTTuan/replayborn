@@ -1,0 +1,25 @@
+name: Godot validation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot 4.7.2
+        uses: firebelley/setup-godot@v1.1.0
+        with:
+          godot-version: 4.7.2
+      - name: Import and validate resources
+        run: |
+          godot --headless --path . --editor --quit
+          godot --headless --path . --script res://tools/validate_resources.gd
+      - name: Run smoke tests
+        run: |
+          godot --headless --path . --script res://tests/prototype_smoke.gd
+          godot --headless --path . --script res://tests/session_smoke.gd
+          godot --headless --path . --script res://tests/run_smoke.gd

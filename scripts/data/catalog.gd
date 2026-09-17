@@ -53,15 +53,4 @@ const SECONDARY_WEAPONS: Array = [
 	preload("res://data/upgrades/secondary_mine.tres"),
 	preload("res://data/upgrades/secondary_beam.tres")
 ]
-const MAPS: Array = [
-	preload("res://data/maps/neon_ruins.tres"),
-	preload("res://data/maps/crystal_basin.tres"),
-	preload("res://data/maps/iron_foundry.tres"),
-	preload("res://data/maps/void_garden.tres"),
-	preload("res://data/maps/frost_station.tres"),
-	preload("res://data/maps/solar_grid.tres"),
-	preload("res://data/maps/storm_atlas.tres"),
-	preload("res://data/maps/black_archive.tres"),
-	preload("res://data/maps/red_frontier.tres"),
-	preload("res://data/maps/replay_core.tres")
-]
+const MAPS: Array = [preload("res://data/maps/neon_ruins.tres")]

@@ -192,8 +192,7 @@ func refresh() -> void:
 	clock_label.text = "%02d:%02d" % [int(game.run_time) / 60, int(game.run_time) % 60]
 	stats_label.text = "LV.%02d  •  K.O. %03d" % [game.director.stage + 1, game.kills]
 	gold_label.text = "◆ %d" % game.profile.data.gold
-	var echo_alive: bool = not game.echoes.is_empty() and is_instance_valid(game.echoes[0]) and not game.echoes[0].dead
-	echo_label.text = "HOLD" if echo_alive else "%02ds" % maxi(0, ceili(15.0 - game.recorder.tick / 60.0))
+	echo_label.text = "%d/4" % game.echoes.size() if game.recorder.tick == 0 else "%02ds" % maxi(0, ceili(15.0 - game.recorder.tick / 60.0))
 	if is_instance_valid(game.boss) and not game.boss.dead:
 		var boss_name: String = game.boss.spec.title_en if game.profile.data.language == "en" else game.boss.spec.title_vi
 		boss_label.text = "BOSS  /  %s   %d / %d HP" % [boss_name, ceili(game.boss.health), ceili(game.boss.max_health)]

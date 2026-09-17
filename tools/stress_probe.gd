@@ -10,11 +10,11 @@ func run() -> void:
 	game.sound.set_levels(0, 0)
 	# Upgrades are XP-driven; this probe never collects XP.
 	for index in range(79):
-		var enemy = game.spawn_enemy(game.Catalog.ENEMIES[index % 5])
+		var enemy = game.spawn_enemy(game.Catalog.REGULAR_ENEMIES[index % game.Catalog.REGULAR_ENEMIES.size()])
 		enemy.health = 1000000
 		enemy.max_health = enemy.health
 		enemy.spawn_protection = 0
-	var boss = game.spawn_enemy(game.Catalog.ENEMIES[9])
+	var boss = game.spawn_enemy(game.Catalog.boss_by_id("boss_archon"))
 	boss.position = Vector2(540, 1000)
 	boss.spawn_protection = 0.0
 	boss.health = 1000000.0

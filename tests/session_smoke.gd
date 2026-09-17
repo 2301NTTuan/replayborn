@@ -47,6 +47,9 @@ func run() -> void:
 	check(game.circuit.points.size() == circuit_points, "upgrade overlay does not record trail")
 	game.apply_upgrade(0)
 	check(not paused, "upgrade selection resumes")
+	var circuit_power_before: float = float(game.stats.circuit_power)
+	game.collect_field_pickup("relic")
+	check(game.run_relics.size() == 1 and float(game.stats.circuit_power) > circuit_power_before, "boss relic grants the first run evolution")
 	game.sound.set_levels(0, 0)
 	check(game.sound.muted, "mute")
 	# Meta progression is deterministic and contains no chest/payment economy.

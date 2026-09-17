@@ -10,3 +10,6 @@ health = 7
 speed = 75.0
 radius = 30.0
 damage = 12
+display_name = "Forge Crab"
+behavior_id = "armored_pincer"
+allowed_levels = ["static_array"]

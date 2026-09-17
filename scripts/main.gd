@@ -71,6 +71,14 @@ var tutorial_last_position: Vector2 = Vector2.ZERO
 var tutorial_targets_spawned: bool = false
 var shake_left: float = 0.0
 var shake_strength: float = 0.0
+var chrono_combo: float = 0.0
+var combo_idle_left: float = 0.0
+var max_combo: int = 0
+var overdrive_left: float = 0.0
+var sticky_target: Node2D
+var target_stick_left: float = 0.0
+var damage_dealt: int = 0
+var run_relics: Array[String] = []
 
 func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
 	return source[key] if source.has(key) else fallback
@@ -148,7 +156,7 @@ func _ready() -> void:
 	practice = profile.practice
 	weapon = Catalog.selected_weapon(int(profile.data.weapon))
 	# Current vertical slice deliberately ships one hero and one arena.
-	map_data = Catalog.MAPS[0]
+	map_data = Catalog.map_by_id(String(Catalog.LEVELS[0].map_id))
 	sound = SoundBank.new()
 	add_child(sound)
 	combat = Combat.new(self)
@@ -189,6 +197,12 @@ func setup_camera() -> void:
 	game_camera.limit_bottom = int(ARENA.end.y)
 	game_camera.position = player.position
 	add_child(game_camera)
+
+func set_level_theme(level_data: Resource) -> void:
+	map_data = Catalog.map_by_id(String(level_data.map_id))
+	RenderingServer.set_default_clear_color(map_data.background)
+	if art != null:
+		art.set_map(map_data)
 
 func apply_settings() -> void:
 	reduced_effects = profile.data.reduced
@@ -242,6 +256,11 @@ func finish_tutorial() -> void:
 	kills = 0
 	run_gold = 0
 	run_cores = 0
+	damage_dealt = 0
+	run_relics.clear()
+	chrono_combo = 0.0
+	max_combo = 0
+	overdrive_left = 0.0
 	run_level = 1
 	run_xp = 0
 	xp_to_next = 30
@@ -261,7 +280,7 @@ func advance_tutorial() -> void:
 		return
 	tutorial_targets_spawned = true
 	for offset in [Vector2(-95, -75), Vector2(95, -75), Vector2(95, 75), Vector2(-95, 75)]:
-		var enemy = spawn_enemy(Catalog.ENEMIES[0])
+		var enemy = spawn_enemy(Catalog.regular_enemy_by_id("ruby_beetle"))
 		enemy.position = (player.position + offset).clamp(ARENA.position + Vector2(60, 60), ARENA.end - Vector2(60, 60))
 		enemy.speed = 18.0
 		enemy.health = 40.0
@@ -309,6 +328,13 @@ func _physics_process(delta: float) -> void:
 			offer_upgrades()
 			return
 	damage_time = maxf(0, damage_time - delta)
+	overdrive_left = maxf(0.0, overdrive_left - delta)
+	target_stick_left = maxf(0.0, target_stick_left - delta)
+	combo_idle_left = maxf(0.0, combo_idle_left - delta)
+	if combo_idle_left <= 0.0:
+		chrono_combo = maxf(0.0, chrono_combo - delta * 9.0)
+	if Input.is_action_just_pressed("chrono_shift"):
+		activate_chrono_shift()
 	circuit_shield_cooldown = maxf(0.0, circuit_shield_cooldown - delta)
 	health = minf(max_health, health + stats.regen * delta)
 	player.advance(delta)
@@ -323,6 +349,9 @@ func _physics_process(delta: float) -> void:
 	var closure: Dictionary = circuit.advance(player.position, run_time, delta, enemies)
 	if not closure.is_empty():
 		resolve_circuit(closure)
+	var sequence_result: Dictionary = circuit_finisher.advance(self, delta)
+	if not sequence_result.is_empty() and bool(sequence_result.get("released", false)):
+		combat.add_effect({"position": player.position, "life": 0.16, "circuit_release": true})
 	if not tutorial_active:
 		director.advance(delta)
 	for enemy in enemies:
@@ -371,6 +400,9 @@ func _physics_process(delta: float) -> void:
 		queue_redraw()
 
 func nearest_enemy() -> Node2D:
+	if is_instance_valid(sticky_target) and not sticky_target.dead and sticky_target.spawn_protection <= 0.0 and target_stick_left > 0.0:
+		if player.position.distance_squared_to(sticky_target.position) <= 760.0 * 760.0:
+			return sticky_target
 	var result: Node2D
 	var best: float = INF
 	for enemy in enemies:
@@ -380,6 +412,9 @@ func nearest_enemy() -> Node2D:
 		if distance < best:
 			best = distance
 			result = enemy
+	if result != null:
+		sticky_target = result
+		target_stick_left = 0.34
 	return result
 
 func spawn_enemy(data: Resource, elite: int = 0, difficulty: float = 1.0) -> Node2D:
@@ -402,6 +437,11 @@ func spawn_enemy(data: Resource, elite: int = 0, difficulty: float = 1.0) -> Nod
 	return enemy
 
 func take_damage(amount: int) -> void:
+	if player.dash_invulnerable:
+		register_combo(18.0)
+		sound.play("perfect_dodge")
+		feedback(5.0, 24)
+		return
 	if damage_time > 0 or health <= 0 or state != State.PLAYING:
 		return
 	var incoming: float = maxi(1, amount - int(stats.armor))
@@ -412,6 +452,7 @@ func take_damage(amount: int) -> void:
 	player.hurt_time = damage_time
 	sound.play("hurt")
 	feedback(7.0, 35)
+	chrono_combo = maxf(0.0, chrono_combo - 14.0)
 
 func kill_enemy(enemy: Node2D) -> void:
 	if enemy.dead:
@@ -432,6 +473,7 @@ func kill_enemy(enemy: Node2D) -> void:
 	elif enemy.elite == 2:
 		# Volatile elites leave an avoidable, telegraphed hazard on death.
 		combat.add_enemy_zone({"position": enemy.position, "radius": 105.0, "delay": 0.55, "duration": 0.12, "damage": maxi(5, enemy.contact_damage), "age": 0.0, "hit": false})
+	register_combo(3.0 if enemy.elite > 0 else 1.5)
 
 func damage_enemy(enemy: Node2D, amount: float, source: String = "weapon") -> void:
 	if not is_instance_valid(enemy) or enemy.dead or enemy.spawn_protection > 0.0:
@@ -440,7 +482,12 @@ func damage_enemy(enemy: Node2D, amount: float, source: String = "weapon") -> vo
 	var multiplier: float = 0.68 if source == "circuit" and enemy_id.begins_with("boss_") else 1.0
 	if source != "circuit" and enemy_id == "boss_warden" and enemy.circuit_exposed <= 0.0:
 		multiplier *= 0.32
-	enemy.health -= maxf(0.0, amount) * multiplier
+	var applied_damage: float = maxf(0.0, amount) * multiplier
+	enemy.health -= applied_damage
+	damage_dealt += roundi(applied_damage)
+	if source != "circuit" and not String(enemy.spec.id).begins_with("boss_"):
+		var push: Vector2 = player.position.direction_to(enemy.position)
+		enemy.hit_impulse = (enemy.hit_impulse + push * minf(420.0, 42.0 + applied_damage * 5.0)).limit_length(460.0)
 	enemy.flash = 0.14
 	if enemy.health <= 0.0:
 		kill_enemy(enemy)
@@ -448,7 +495,7 @@ func damage_enemy(enemy: Node2D, amount: float, source: String = "weapon") -> vo
 func resolve_circuit(closure: Dictionary) -> void:
 	var polygon: PackedVector2Array = closure.polygon
 	var targets: Array = closure.targets.duplicate()
-	var result: Dictionary = circuit_finisher.apply(self, weapon, polygon, targets)
+	var result: Dictionary = circuit_finisher.begin(self, weapon, polygon, targets)
 	circuits_closed += 1
 	enemies_captured += int(result.get("captured", 0))
 	if circuit_shield_cooldown <= 0.0 and float(stats.circuit_shield) > 0.0:
@@ -456,11 +503,32 @@ func resolve_circuit(closure: Dictionary) -> void:
 		circuit_shield_cooldown = 1.5
 	sound.play("circuit")
 	feedback(10.0, 28)
+	register_combo(24.0 + minf(14.0, float(result.get("captured", 0))))
 	hud.announce("circuit_closed")
 	if tutorial_active:
 		state = State.TUTORIAL
 		get_tree().paused = true
 		hud.show_tutorial_complete()
+
+func activate_chrono_shift() -> void:
+	var shift: Dictionary = player.chrono_shift()
+	if shift.is_empty():
+		return
+	circuit.add_temporal_cut(shift.from, shift.from + shift.direction * player.speed * 3.8 * float(shift.duration), run_time)
+	combat.add_effect({"position": shift.from, "life": 0.28, "chrono_shift": true, "direction": shift.direction})
+	sound.play("shift")
+	feedback(4.0, 16)
+
+func register_combo(amount: float) -> void:
+	chrono_combo = minf(100.0, chrono_combo + amount)
+	combo_idle_left = 3.8
+	max_combo = maxi(max_combo, roundi(chrono_combo))
+	if chrono_combo >= 100.0 and overdrive_left <= 0.0:
+		overdrive_left = 7.0
+		chrono_combo = 40.0
+		sound.play("overdrive")
+		feedback(12.0, 42)
+		hud.announce("overdrive")
 
 func spawn_xp_orb(at: Vector2, amount: int, tier: int = 0) -> void:
 	if xp_orbs.size() >= MAX_XP_ORBS:
@@ -496,6 +564,9 @@ func spawn_gold_orb(at: Vector2, amount: int) -> void:
 
 func roll_field_drop(at: Vector2, boss_drop: bool) -> void:
 	# Rare field drops break up the collection loop without flooding the arena.
+	if boss_drop:
+		spawn_field_pickup(at, "relic")
+		return
 	var magnet_chance: float = 0.24 if boss_drop else 0.035
 	var heart_chance: float = 0.32 if boss_drop else (0.055 if health < max_health * 0.82 else 0.018)
 	if randf() < magnet_chance:
@@ -522,9 +593,21 @@ func collect_field_pickup(kind: String) -> void:
 			if is_instance_valid(gold) and gold.position.distance_to(player.position) <= 480.0:
 				gold.magnetize()
 		combat.add_effect({"position": player.position, "life": 0.42, "magnet_pickup": true, "radius": 480.0})
-	else:
+	elif kind == "heart":
 		health = minf(max_health, health + maxf(16.0, max_health * 0.22))
 		combat.add_effect({"position": player.position, "life": 0.34, "heart_pickup": true})
+	else:
+		var relic_id: String = ["relic_resonance", "relic_momentum", "relic_vitality"][run_relics.size() % 3]
+		run_relics.append(relic_id)
+		match relic_id:
+			"relic_resonance": stats.circuit_power += 0.22
+			"relic_momentum": stats.haste += 1
+			"relic_vitality":
+				max_health += 14.0
+				health = minf(max_health, health + 14.0)
+		combat.add_effect({"position": player.position, "life": 0.46, "relic_pickup": true})
+		sound.play("upgrade")
+		hud.announce(relic_id)
 
 func enemy_durability_multiplier() -> float:
 	return 1.20
@@ -672,6 +755,13 @@ func _draw() -> void:
 			draw_arc(effect.position, float(effect.radius) * (1.0 - magnet_alpha * 0.35), 0.0, TAU, 44, Color("76e9ff", magnet_alpha * 0.54), 3.0)
 		elif bool(dict_value(effect, "heart_pickup", false)):
 			draw_energy_flare(effect.position, 42.0, Color(1.0, 0.38, 0.54, clampf(effect.life / 0.34, 0.0, 1.0)), 7, run_time * 6.0)
+		elif bool(dict_value(effect, "chrono_shift", false)):
+			var shift_alpha: float = clampf(effect.life / 0.28, 0.0, 1.0)
+			var shift_direction: Vector2 = dict_value(effect, "direction", Vector2.RIGHT)
+			var shift_end: Vector2 = effect.position + shift_direction * 160.0
+			draw_line(effect.position, shift_end, Color(0.24, 0.92, 1.0, shift_alpha * 0.24), 28.0)
+			draw_line(effect.position, shift_end, Color(0.72, 0.98, 1.0, shift_alpha), 5.0)
+			draw_energy_flare(effect.position, 32.0, Color(0.35, 0.92, 1.0, shift_alpha), 8, run_time * 12.0)
 		else:
 			var hit_alpha: float = clampf(effect.life / 0.18, 0.0, 1.0)
 			draw_energy_flare(effect.position, 16.0 + (0.18 - effect.life) * 110, Color(1.0, 0.85, 0.6, hit_alpha), 7, run_time * 9.0)

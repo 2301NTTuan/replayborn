@@ -32,6 +32,7 @@ const TEXT: Dictionary = {
 "credits_body": ["Replayborn · Godot 4.7.2\nThiết kế và code gốc trong repository. Art original_v1 có hồ sơ nguồn trong docs/ASSET_PROVENANCE.md. Nhạc Tense Future Loop của gmason, CC0. Font Cascadia Code cần được xác minh lại trong release checklist.", "Replayborn · Godot 4.7.2\nOriginal design and code in this repository. original_v1 art provenance is recorded in docs/ASSET_PROVENANCE.md. Tense Future Loop by gmason, CC0. Cascadia Code licensing must be reverified in the release checklist."],
 "weapon": ["CHỌN VŨ KHÍ", "CHOOSE WEAPON"], "pulse": ["Xung lực", "Pulse"], "scatter": ["Tán xạ", "Scatter"], "lance": ["Xuyên phá", "Lance"],
 "memory": ["KÝ ỨC", "MEMORY"], "memory_ready": ["SẴN SÀNG", "READY"],
+"chrono_shift": ["CHRONO SHIFT", "CHRONO SHIFT"], "chrono_ready": ["SẴN SÀNG", "READY"], "combo": ["COMBO", "COMBO"], "overdrive": ["QUÁ TẢI", "OVERDRIVE"],
 "run_status": ["TRẠNG THÁI RUN", "RUN STATUS"], "system_brand": ["HỆ THỐNG / REPLAYBORN", "SYSTEM / REPLAYBORN"],
 "sound_section": ["ÂM THANH", "AUDIO"], "experience_section": ["TRẢI NGHIỆM", "EXPERIENCE"],
 "level_up": ["LÊN CẤP", "LEVEL UP"], "offline": ["NGOẠI TUYẾN", "OFFLINE"],
@@ -46,6 +47,7 @@ const TEXT: Dictionary = {
 "confirm": ["Đồng ý", "Confirm"], "cancel": ["Hủy", "Cancel"],
 "pause_note": ["Đường ký ức hiện tại được giữ nguyên khi tạm dừng.", "The current memory trail is preserved while paused."],
 "circuit_result": ["Level %d · %d vòng mạch · %d mục tiêu bị bắt · %d boss\n◆ %d vàng · ◈ %d lõi", "Level %d · %d circuits · %d targets captured · %d bosses\n◆ %d gold · ◈ %d cores"],
+"combat_result": ["COMBO cao nhất %d%% · %d sát thương", "MAX COMBO %d%% · %d damage"],
 "paused_kicker": ["ĐÃ TẠM DỪNG · PHIÊN AN TOÀN", "RUN PAUSED · SESSION SAFE"],
 "confirm_kicker": ["CẦN XÁC NHẬN", "CONFIRMATION REQUIRED"],
 "abandon_note": ["Kết thúc phiên sẽ xóa tiến trình trong trận hiện tại.", "Ending the session discards current run progress."],
@@ -62,6 +64,9 @@ const TEXT: Dictionary = {
 "upgrade_kicker": ["LÊN CẤP · CHỌN MỘT LÕI", "LEVEL UP · SELECT ONE CORE"],
 "upgrade_note": ["Bạn đã nhặt đủ XP. Chạm một lõi để nâng cấp vòng lặp.", "You collected enough XP. Tap a core to upgrade this run."],
 "core_index": ["LÕI %02d", "CORE %02d"], "tap_select": ["CHẠM VÀO THẺ ĐỂ CHỌN", "TAP THE CARD TO SELECT"],
+"upgrade_offense": ["TẤN CÔNG", "OFFENSE"], "upgrade_circuit": ["MẠCH THỜI GIAN", "TIME CIRCUIT"], "upgrade_survival": ["SINH TỒN", "SURVIVAL"], "upgrade_weapon": ["VŨ KHÍ", "WEAPON"],
+"relic_resonance": ["DI VẬT · CỘNG HƯỞNG", "RELIC · RESONANCE"], "relic_momentum": ["DI VẬT · XUNG LỰC", "RELIC · MOMENTUM"], "relic_vitality": ["DI VẬT · SỨC SỐNG", "RELIC · VITALITY"],
+"relic_result": ["DI VẬT: %s", "RELICS: %s"],
 "result_kicker": ["BÁO CÁO RUN · KHO MẠCH", "RUN REPORT · CIRCUIT ARCHIVE"]
 }
 

@@ -22,6 +22,11 @@ func setup() -> void:
     friendly_projectile = null
     hostile_projectile = null
 
+func set_map(map_data: Resource) -> void:
+    if is_instance_valid(map_root):
+        map_root.queue_free()
+    setup_map(String(map_data.id))
+
 func draw_projectiles(canvas: Node2D) -> void:
     if game.combat == null:
         return

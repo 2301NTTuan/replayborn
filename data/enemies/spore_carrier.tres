@@ -10,3 +10,6 @@ health = 8
 speed = 70.0
 radius = 29.0
 damage = 14
+display_name = "Spore Carrier"
+behavior_id = "spore_burst"
+allowed_levels = ["orbit_vault"]

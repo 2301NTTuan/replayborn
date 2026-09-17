@@ -53,7 +53,7 @@ func run() -> void:
 	boss.advance(1.0 / 60)
 	check(game.combat.hostile.size() >= 8, "boss radial skill fires")
 	for level in range(5):
-		check(game.boss.spec == game.Catalog.ENEMIES[5 + level], "distinct boss for level %d" % level)
+		check(game.boss.spec == game.Catalog.boss_by_id(String(game.Catalog.LEVELS[level].boss_id)), "distinct boss for level %d" % level)
 		game.run_tick += int(game.director.LEVEL_DURATION * 60.0)
 		game.run_time = game.run_tick / 60.0
 		game.kill_enemy(game.boss)
@@ -66,11 +66,11 @@ func run() -> void:
 		for transition_tick in range(181):
 			game._physics_process(1.0 / 60.0)
 		check(not game.won and not game.director.boss_spawned, "intermediate boss starts next wave after rest")
-		var trio: Array = game.Catalog.LEVELS[level + 1].enemy_indices
+		var trio: Array[String] = game.Catalog.LEVELS[level + 1].enemy_ids
 		for index in range(3):
 			game.director.spawn_left = 0
 			game.director.advance(1.0 / 60)
-			check(game.enemies.back().spec == game.Catalog.ENEMIES[trio[index]], "wave cycles through all three types")
+			check(String(game.enemies.back().spec.id) == trio[index], "wave cycles through level enemy IDs")
 		game.run_tick += int(game.director.LEVEL_DURATION * 60.0)
 		game.damage_time = 99
 		game._physics_process(1.0 / 60)

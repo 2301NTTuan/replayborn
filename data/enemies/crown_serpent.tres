@@ -10,3 +10,6 @@ health = 10
 speed = 115.0
 radius = 30.0
 damage = 16
+display_name = "Crown Serpent"
+behavior_id = "space_lock"
+allowed_levels = ["replay_core"]

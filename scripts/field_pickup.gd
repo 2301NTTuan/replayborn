@@ -22,7 +22,12 @@ func advance(delta: float) -> bool:
 
 func _draw() -> void:
 	var pulse := 1.0 + sin(life * 7.0) * 0.10
-	if kind == "magnet":
+	if kind == "relic":
+		draw_circle(Vector2.ZERO, 28.0 * pulse, Color("c58cff", 0.14))
+		draw_colored_polygon(PackedVector2Array([Vector2(0, -17), Vector2(14, 0), Vector2(0, 17), Vector2(-14, 0)]), Color("8f62e8"))
+		draw_arc(Vector2.ZERO, 19.0, life * 2.2, life * 2.2 + PI * 1.5, 20, Color("f1d3ff"), 3.0)
+		draw_circle(Vector2.ZERO, 4.0, Color("ffffff"))
+	elif kind == "magnet":
 		draw_circle(Vector2.ZERO, 22.0 * pulse, Color("66d9ff", 0.12))
 		draw_circle(Vector2.ZERO, 13.0, Color("172d46"))
 		draw_arc(Vector2.ZERO, 9.0, PI * 0.12, PI * 0.88, 18, Color("76e9ff"), 5.0)

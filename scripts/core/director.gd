@@ -31,6 +31,7 @@ func advance(delta: float) -> void:
 			next_horde_at = game.run_time + 18.0
 			spawn_index = 0
 			spawn_left = 2.0
+			game.set_level_theme(Catalog.LEVELS[stage])
 		return
 	if game.practice:
 		stage = mini(LEVEL_COUNT, int(game.run_time / 60.0))
@@ -46,8 +47,9 @@ func advance(delta: float) -> void:
 				enemy.queue_free()
 			game.enemies.clear()
 			game.combat.hostile.clear()
-			game.spawn_enemy(Catalog.ENEMIES[level_data.boss_index], 0, game.map_data.boss_scale * (1.0 + stage * 0.20))
+			game.spawn_enemy(Catalog.boss_by_id(String(level_data.boss_id)), 0, game.map_data.boss_scale * (1.0 + stage * 0.20))
 			game.hud.announce("boss_arrives")
+			game.sound.play("boss_alert")
 			game.feedback(12.0, 55)
 	if boss_spawned:
 		return
@@ -60,10 +62,10 @@ func advance(delta: float) -> void:
 	spawn_left -= delta
 	if spawn_left > 0 or game.enemies.size() >= MAX_ACTIVE_ENEMIES:
 		return
-	var order: Array[int] = Catalog.LEVELS[mini(stage, LEVEL_COUNT - 1)].enemy_indices
+	var order: Array[String] = Catalog.LEVELS[mini(stage, LEVEL_COUNT - 1)].enemy_ids
 	if order.is_empty():
 		return
-	var data: Resource = Catalog.ENEMIES[order[spawn_index % order.size()]]
+	var data: Resource = Catalog.regular_enemy_by_id(order[spawn_index % order.size()])
 	spawn_index += 1
 	var phase_time: float = game.run_time - level_started_at
 	var hard_phase: bool = phase_time >= PHASE_DURATION
@@ -79,7 +81,7 @@ func spawn_horde() -> void:
 	if game.enemies.size() >= MAX_ACTIVE_ENEMIES:
 		return
 	horde_index += 1
-	var order: Array[int] = Catalog.LEVELS[mini(stage, LEVEL_COUNT - 1)].enemy_indices
+	var order: Array[String] = Catalog.LEVELS[mini(stage, LEVEL_COUNT - 1)].enemy_ids
 	if order.is_empty():
 		return
 	var phase_time: float = game.run_time - level_started_at
@@ -88,7 +90,7 @@ func spawn_horde() -> void:
 	var capacity: int = MAX_ACTIVE_ENEMIES - game.enemies.size()
 	count = mini(count, capacity)
 	for index in range(count):
-		var data: Resource = Catalog.ENEMIES[order[(index + horde_index) % order.size()]]
+		var data: Resource = Catalog.regular_enemy_by_id(order[(index + horde_index) % order.size()])
 		var elite := 1 if hard_phase and index % 7 == 0 else 0
 		if hard_phase and index % 11 == 0:
 			elite = 2

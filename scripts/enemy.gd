@@ -17,6 +17,7 @@ var cycle: float = 0
 var shot_time: float = 1.5
 var dash_direction: Vector2 = Vector2.ZERO
 var flash: float = 0
+var hit_impulse: Vector2 = Vector2.ZERO
 var elite: int = 0
 var spawn_protection: float = 0.7
 var orbit_sign: float = 1
@@ -56,6 +57,9 @@ func advance(delta: float) -> void:
 		queue_redraw()
 		return
 	flash = maxf(0, flash - delta)
+	if hit_impulse.length_squared() > 1.0:
+		position += hit_impulse * delta
+		hit_impulse = hit_impulse.move_toward(Vector2.ZERO, 1800.0 * delta)
 	circuit_exposed = maxf(0.0, circuit_exposed - delta)
 	if spawn_protection > 0:
 		spawn_protection -= delta

@@ -10,3 +10,6 @@ health = 12
 speed = 70.0
 radius = 32.0
 damage = 16
+display_name = "Prism Golem"
+behavior_id = "telegraph_laser"
+allowed_levels = ["replay_core"]

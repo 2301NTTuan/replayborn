@@ -92,7 +92,8 @@ func fire(target: Node2D, delta: float) -> Array:
 		}
 		result.append(shot.duplicate(true))
 		add_shot(shot)
-	fire_left = maxf(0.09, weapon.interval * pow(0.9, stats.haste))
+	var overdrive_rate: float = 0.78 if game.overdrive_left > 0.0 else 1.0
+	fire_left = maxf(0.09, weapon.interval * pow(0.9, stats.haste) * overdrive_rate)
 	game.sound.play("shot")
 	game.player.register_shot()
 	return result

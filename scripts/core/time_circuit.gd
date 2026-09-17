@@ -32,6 +32,16 @@ func reset(position: Vector2 = Vector2.ZERO, now: float = 0.0) -> void:
 	active_polygon = PackedVector2Array()
 	snap_point = Vector2.INF
 
+func add_temporal_cut(from: Vector2, to: Vector2, now: float) -> void:
+	if points.is_empty() or points[points.size() - 1].distance_to(from) >= sample_distance:
+		points.append(from)
+		point_times.append(now)
+	points.append(to)
+	point_times.append(now)
+	while points.size() > MAX_POINTS:
+		points.remove_at(0)
+		point_times.remove_at(0)
+
 func configure(stats: Dictionary) -> void:
 	trail_duration = clampf(BASE_TRAIL_DURATION + float(stats.get("trail_duration", 0.0)), BASE_TRAIL_DURATION, 9.0)
 	snap_radius = clampf(BASE_SNAP_RADIUS + float(stats.get("snap_radius", 0.0)), BASE_SNAP_RADIUS, 60.0)

@@ -10,6 +10,8 @@ var health_label: Label
 var memory_label: Label
 var xp_label: Label
 var boss_label: Label
+var boss_progress: ProgressBar
+var debug_label: Label
 var progress: ProgressBar
 var xp_progress: ProgressBar
 var health_bar: ProgressBar
@@ -23,6 +25,8 @@ var announcement: Label
 var announcement_panel: Panel
 var announcement_left: float = 0
 var pause_button: Button
+var chrono_button: Button
+var combo_label: Label
 var pickup_label: Label
 var pickup_left: float = 0.0
 
@@ -65,6 +69,44 @@ func compact_pause_button(parent: Control) -> Button:
 	button.pressed.connect(game.toggle_pause)
 	parent.add_child(button)
 	return button
+
+func chrono_shift_button(parent: Control) -> Button:
+	var button := Button.new()
+	button.position = Vector2(730, 1710)
+	button.size = Vector2(300, 88)
+	button.custom_minimum_size = Vector2(300, 88)
+	button.add_theme_font_size_override("font_size", 20)
+	button.tooltip_text = "Space"
+	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var fill := Color("17244b")
+		var border := Color("65edff")
+		if state == "hover": fill = Color("21446b")
+		elif state == "pressed": fill = Color("2c6f86")
+		elif state == "disabled":
+			fill = Color("101a2d")
+			border = Color("36506b")
+		var style := UI.box(fill, 12, border, 2)
+		style.set_content_margin_all(0)
+		button.add_theme_stylebox_override(state, style)
+	button.pressed.connect(game.activate_chrono_shift)
+	parent.add_child(button)
+	return button
+
+func upgrade_category(item: Resource) -> String:
+	if item.core_type == "weapon":
+		return "upgrade_weapon"
+	if String(item.stat) in ["trail_duration", "snap_radius", "circuit_power", "time_lock", "circuit_shield", "compression", "pulse_relay", "pulse_overload", "scatter_focus", "scatter_shrapnel", "lance_resonance", "lance_collapse"]:
+		return "upgrade_circuit"
+	if String(item.stat) in ["max_hp", "heal", "armor", "regen", "grace", "siphon", "speed"]:
+		return "upgrade_survival"
+	return "upgrade_offense"
+
+func upgrade_color(category: String) -> Color:
+	match category:
+		"upgrade_circuit": return Color("72f6d4")
+		"upgrade_survival": return Color("72b8ff")
+		"upgrade_weapon": return Color("c58cff")
+		_: return Color("ffd26a")
 
 func bind_game(owner_game: Node) -> void:
 	game = owner_game
@@ -145,6 +187,12 @@ func bind_game(owner_game: Node) -> void:
 	joystick.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	joystick.direction_changed.connect(func(direction: Vector2) -> void: game.player.touch_direction = direction)
 	root_control.add_child(joystick)
+	combo_label = UI.label(root_control, "", 20, true)
+	combo_label.position = Vector2(50, 1718)
+	combo_label.size = Vector2(650, 44)
+	combo_label.add_theme_font_size_override("font_size", 22)
+	combo_label.add_theme_color_override("font_color", Color("ffd26a"))
+	chrono_button = chrono_shift_button(root_control)
 	announcement_panel = Panel.new()
 	announcement_panel.position = Vector2(156, 218)
 	announcement_panel.size = Vector2(768, 58)
@@ -168,6 +216,19 @@ func bind_game(owner_game: Node) -> void:
 	boss_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	boss_label.clip_text = true
 	boss_label.add_theme_color_override("font_color", Color("ffb0cb"))
+	boss_progress = ProgressBar.new()
+	boss_progress.position = Vector2(126, 322)
+	boss_progress.size = Vector2(828, 13)
+	boss_progress.show_percentage = false
+	boss_progress.add_theme_stylebox_override("background", UI.box(Color("1b1020", 0.88), 6, Color("73314d"), 1))
+	boss_progress.add_theme_stylebox_override("fill", UI.box(Color("ef4c83"), 6, Color("ffb0cb"), 0))
+	root_control.add_child(boss_progress)
+	boss_progress.hide()
+	debug_label = UI.label(root_control, "", 16, false)
+	debug_label.position = Vector2(48, 350)
+	debug_label.size = Vector2(420, 24)
+	debug_label.add_theme_color_override("font_color", Color("8ea5bd"))
+	debug_label.visible = OS.is_debug_build()
 	var hint := UI.label(root_control, t("hint"), 23, true)
 	hint.name = "BottomHint"
 	hint.position = Vector2(70, 1846)
@@ -221,11 +282,26 @@ func refresh() -> void:
 	xp_progress.max_value = game.xp_to_next
 	xp_progress.value = game.run_xp
 	memory_label.text = t("memory_ready") if game.circuit.snap_point != Vector2.INF else "%d%%" % roundi(game.circuit.memory_ratio(game.run_time) * 100.0)
+	if game.overdrive_left > 0.0:
+		combo_label.text = "✦ %s  %.1fs" % [t("overdrive"), game.overdrive_left]
+		combo_label.add_theme_color_override("font_color", Color("ff9d5e"))
+	else:
+		combo_label.text = "%s  %d%%" % [t("combo"), roundi(game.chrono_combo)]
+		combo_label.add_theme_color_override("font_color", Color("ffd26a"))
+	var ready: bool = game.player.can_chrono_shift()
+	chrono_button.disabled = not ready
+	chrono_button.text = "⌁  %s  %s" % [t("chrono_shift"), t("chrono_ready") if ready else "%d%%" % roundi(game.player.chrono_shift_ratio() * 100.0)]
 	if is_instance_valid(game.boss) and not game.boss.dead:
 		var boss_name: String = game.boss.spec.title_en if game.profile.data.language == "en" else game.boss.spec.title_vi
 		boss_label.text = t("boss_hp") % [boss_name, ceili(game.boss.health), ceili(game.boss.max_health)]
+		boss_progress.max_value = game.boss.max_health
+		boss_progress.value = game.boss.health
+		boss_progress.show()
 	else:
 		boss_label.text = ""
+		boss_progress.hide()
+	if debug_label.visible:
+		debug_label.text = "DEV  EN %d · P %d/%d · FX %d · %s" % [game.enemies.size(), game.combat.friendly.size(), game.combat.MAX_FRIENDLY, game.combat.effects.size(), game.circuit_finisher.phase_name().to_upper()]
 
 func show_overlay(title: String) -> void:
 	joystick.reset()
@@ -298,7 +374,6 @@ func show_upgrades(offers: Array) -> void:
 	show_overlay(t("choose_core"))
 	overlay_kicker.text = t("upgrade_kicker")
 	overlay_note(t("upgrade_note"))
-	var accents := [Color("55ebd2"), Color("ffd26a"), Color("b78cff")]
 	for index in range(offers.size()):
 		var offer_index := index
 		var item: Resource = offers[index]
@@ -307,7 +382,9 @@ func show_upgrades(offers: Array) -> void:
 		var description: String = item.description_en if english else item.description_vi
 		if item.core_type == "weapon":
 			description += "  " + "★".repeat(int(dict_value(game.upgrade_counts, item.id, 0)) + 1)
-		var offer := UI.card(body, accents[index % accents.size()])
+		var category := upgrade_category(item)
+		var accent := upgrade_color(category)
+		var offer := UI.card(body, accent)
 		var offer_panel := offer.get_parent() as PanelContainer
 		offer_panel.modulate.a = 0.0
 		offer_panel.scale = Vector2(0.72, 0.72)
@@ -322,16 +399,16 @@ func show_upgrades(offers: Array) -> void:
 			if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
 				game.apply_upgrade(offer_index))
 		offer_panel.mouse_entered.connect(func() -> void:
-			offer_panel.add_theme_stylebox_override("panel", UI.box(Color("17364c"), 22, accents[index % accents.size()], 3)))
+			offer_panel.add_theme_stylebox_override("panel", UI.box(Color("17364c"), 22, accent, 3)))
 		offer_panel.mouse_exited.connect(func() -> void:
-			offer_panel.add_theme_stylebox_override("panel", UI.box(UI.SURFACE, 22, accents[index % accents.size()], 2)))
-		UI.caption(offer, t("core_index") % (index + 1))
+			offer_panel.add_theme_stylebox_override("panel", UI.box(UI.SURFACE, 22, accent, 2)))
+		UI.caption(offer, "%s · %s %d/%d" % [t(category), t("core_index") % (index + 1), int(dict_value(game.upgrade_counts, item.id, 0)) + 1, item.limit])
 		var title_label := UI.label(offer, title, 31)
-		title_label.add_theme_color_override("font_color", accents[index % accents.size()])
+		title_label.add_theme_color_override("font_color", accent)
 		var description_label := UI.label(offer, description, 22)
 		description_label.add_theme_color_override("font_color", Color("b7c9d9"))
 		var tap_hint := UI.label(offer, t("tap_select"), 18, true)
-		tap_hint.add_theme_color_override("font_color", accents[index % accents.size()])
+		tap_hint.add_theme_color_override("font_color", accent)
 
 func show_result() -> void:
 	show_overlay(t("win" if game.won else "lose"))
@@ -339,6 +416,12 @@ func show_result() -> void:
 	var report := UI.card(body, Color("ffd26a") if game.won else Color("a95070"))
 	UI.label(report, t("result") % [int(game.run_time) / 60, int(game.run_time) % 60, game.kills], 31, true)
 	UI.label(report, t("circuit_result") % [game.director.stage + 1, game.circuits_closed, game.enemies_captured, game.director.boss_defeated, game.run_gold, game.run_cores], 22)
+	UI.label(report, t("combat_result") % [game.max_combo, game.damage_dealt], 20)
+	if not game.run_relics.is_empty():
+		var relic_names: PackedStringArray = PackedStringArray()
+		for relic_id in game.run_relics:
+			relic_names.append(t(relic_id))
+		UI.label(report, t("relic_result") % ", ".join(relic_names), 19)
 	if not game.profile.warning.is_empty():
 		UI.label(body, t(game.profile.warning), 25)
 	UI.primary_button(body, "↻  " + t("restart"), game.restart_run, 100).grab_focus()

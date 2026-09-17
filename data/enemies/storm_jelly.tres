@@ -10,3 +10,6 @@ health = 5
 speed = 100.0
 radius = 24.0
 damage = 12
+display_name = "Storm Jelly"
+behavior_id = "electric_orbit"
+allowed_levels = ["static_array", "replay_core"]

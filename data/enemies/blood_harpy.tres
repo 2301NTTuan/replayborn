@@ -10,3 +10,6 @@ health = 6
 speed = 155.0
 radius = 23.0
 damage = 14
+display_name = "Blood Harpy"
+behavior_id = "predictive_dive"
+allowed_levels = ["orbit_vault"]

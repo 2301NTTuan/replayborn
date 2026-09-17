@@ -10,3 +10,6 @@ health = 4
 speed = 95.0
 radius = 23.0
 damage = 10
+display_name = "Void Spitter"
+behavior_id = "acid_volley"
+allowed_levels = ["fractured_lane", "static_array"]

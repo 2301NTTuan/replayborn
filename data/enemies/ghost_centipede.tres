@@ -10,3 +10,6 @@ health = 8
 speed = 145.0
 radius = 28.0
 damage = 16
+display_name = "Ghost Centipede"
+behavior_id = "hazard_trail"
+allowed_levels = ["orbit_vault"]

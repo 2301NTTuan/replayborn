@@ -27,7 +27,7 @@ func run() -> void:
 	root.add_child(game)
 	game.set_physics_process(false)
 	for index in range(5):
-		var enemy = game.spawn_enemy(game.Catalog.ENEMIES[index], 0)
+		var enemy = game.spawn_enemy(game.Catalog.REGULAR_ENEMIES[index], 0)
 		enemy.position = Vector2(200 + index * 160, 750)
 		enemy.spawn_protection = 0
 	game.circuit.points = PackedVector2Array([Vector2(300, 1200), Vector2(760, 1200), Vector2(760, 1550), Vector2(300, 1550)])

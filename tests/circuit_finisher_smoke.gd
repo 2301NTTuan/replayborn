@@ -24,7 +24,7 @@ func run() -> void:
 		game.weapon = game.Catalog.WEAPONS[weapon_index]
 		var targets: Array = []
 		for index in range(4):
-			var enemy = game.spawn_enemy(game.Catalog.ENEMIES[index % 5])
+			var enemy = game.spawn_enemy(game.Catalog.REGULAR_ENEMIES[index % game.Catalog.REGULAR_ENEMIES.size()])
 			enemy.position = Vector2(330 + index * 120, 920 + index * 55)
 			enemy.spawn_protection = 0.0
 			enemy.health = 1000.0
@@ -37,7 +37,22 @@ func run() -> void:
 		for target in targets:
 			game.enemies.erase(target)
 			target.queue_free()
-	var boss = game.spawn_enemy(game.Catalog.ENEMIES[5])
+	var sequence_target = game.spawn_enemy(game.Catalog.regular_enemy_by_id("ruby_beetle"))
+	sequence_target.position = Vector2(520, 920)
+	sequence_target.spawn_protection = 0.0
+	sequence_target.health = 1000.0
+	sequence_target.max_health = 1000.0
+	var queued: Dictionary = game.circuit_finisher.begin(game, game.weapon, polygon, [sequence_target])
+	check(bool(queued.queued) and game.circuit_finisher.phase_name() == "lock", "live Circuit starts in the lock phase")
+	var sequence_before: float = sequence_target.health
+	var impact: Dictionary = game.circuit_finisher.advance(game, 0.11)
+	check(impact.hits > 0 and sequence_target.health < sequence_before, "Circuit applies damage at the finisher impact")
+	game.circuit_finisher.advance(game, 0.19)
+	game.circuit_finisher.advance(game, 0.17)
+	check(game.circuit_finisher.phase_name() == "idle", "Circuit releases safely after its finisher")
+	game.enemies.erase(sequence_target)
+	sequence_target.queue_free()
+	var boss = game.spawn_enemy(game.Catalog.boss_by_id("boss_warden"))
 	boss.position = Vector2(540, 1000)
 	boss.spawn_protection = 0.0
 	boss.health = 1000.0

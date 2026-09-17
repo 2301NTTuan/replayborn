@@ -10,3 +10,6 @@ health = 5
 speed = 90.0
 radius = 25.0
 damage = 10
+display_name = "Needle Walker"
+behavior_id = "needle_mine"
+allowed_levels = ["fractured_lane"]

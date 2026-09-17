@@ -10,3 +10,6 @@ health = 3.5
 speed = 145.0
 radius = 24.0
 damage = 10
+display_name = "Blade Mantis"
+behavior_id = "cone_lunge"
+allowed_levels = ["fractured_lane"]

@@ -10,3 +10,6 @@ health = 7
 speed = 125.0
 radius = 27.0
 damage = 14
+display_name = "Sword Automaton"
+behavior_id = "slash_combo"
+allowed_levels = ["orbit_vault", "replay_core"]

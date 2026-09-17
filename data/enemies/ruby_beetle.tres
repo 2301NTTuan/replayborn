@@ -10,3 +10,6 @@ health = 3
 speed = 105.0
 radius = 22.0
 damage = 8
+display_name = "Ruby Beetle"
+behavior_id = "swarm"
+allowed_levels = ["signal_gate"]

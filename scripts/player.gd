@@ -22,6 +22,13 @@ var shoot_flash: float = 0.0
 var level_up_time: float = 0.0
 var equipment: Dictionary = {}
 var rarity_colors: Array[Color] = [Color("b8c3d1"), Color("65b7ff"), Color("c77dff"), Color("ff70c8"), Color("ffd166")]
+const SHIFT_DURATION: float = 0.22
+const SHIFT_COOLDOWN: float = 7.0
+var dash_left: float = 0.0
+var dash_cooldown: float = 0.0
+var dash_vector: Vector2 = Vector2.RIGHT
+var dash_invulnerable: bool = false
+var recoil_left: float = 0.0
 
 func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
 	return source[key] if source.has(key) else fallback
@@ -44,7 +51,18 @@ func advance(delta: float) -> void:
 	hurt_time = maxf(0, hurt_time - delta)
 	shoot_flash = maxf(0, shoot_flash - delta)
 	level_up_time = maxf(0, level_up_time - delta)
+	recoil_left = maxf(0.0, recoil_left - delta)
 	pulse += delta
+	dash_cooldown = maxf(0.0, dash_cooldown - delta)
+	if dash_left > 0.0:
+		dash_left = maxf(0.0, dash_left - delta)
+		dash_invulnerable = dash_left > 0.05
+		velocity = dash_vector * speed * 3.8
+		move_and_slide()
+		position = position.clamp(arena.position + Vector2.ONE * 25, arena.end - Vector2.ONE * 25)
+		queue_redraw()
+		return
+	dash_invulnerable = false
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if touch_direction.length_squared() > direction.length_squared():
 		direction = touch_direction
@@ -59,8 +77,30 @@ func advance(delta: float) -> void:
 	position = position.clamp(arena.position + Vector2.ONE * 25, arena.end - Vector2.ONE * 25)
 	queue_redraw()
 
+func can_chrono_shift() -> bool:
+	return active and dash_left <= 0.0 and dash_cooldown <= 0.0
+
+func chrono_shift() -> Dictionary:
+	if not can_chrono_shift():
+		return {}
+	var direction := touch_direction
+	if direction.length_squared() < 0.01:
+		direction = smoothed_direction
+	if direction.length_squared() < 0.01:
+		direction = facing
+	dash_vector = direction.normalized()
+	dash_left = SHIFT_DURATION
+	dash_cooldown = SHIFT_COOLDOWN
+	dash_invulnerable = true
+	shoot_flash = 0.16
+	return {"from": position, "direction": dash_vector, "duration": SHIFT_DURATION}
+
+func chrono_shift_ratio() -> float:
+	return clampf(1.0 - dash_cooldown / SHIFT_COOLDOWN, 0.0, 1.0)
+
 func _draw() -> void:
-	var weapon_anchor := Vector2(0, -22)
+	var recoil_offset := -facing * 7.0 * clampf(recoil_left / 0.08, 0.0, 1.0)
+	var weapon_anchor := Vector2(0, -22) + recoil_offset
 	var muzzle := weapon_anchor + facing * 34.0
 	draw_line(weapon_anchor - facing * 10.0, muzzle, Color("1c3148"), 9)
 	draw_line(weapon_anchor - facing * 4.0, muzzle, accent.lightened(0.32), 4)
@@ -72,6 +112,9 @@ func _draw() -> void:
 		var language: String = game.profile.data.language if game != null and game.profile != null else "en"
 		draw_string(DISPLAY_FONT, Vector2(-58, -112 - (1.0 - alpha) * 12.0), Words.get_text("level_up", language), HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1.0, 0.82, 0.32, alpha))
 		draw_arc(Vector2.ZERO, 52.0 + (1.0 - alpha) * 18.0, 0, TAU, 32, Color(1.0, 0.82, 0.32, alpha * 0.7), 3)
+	if dash_left > 0.0:
+		draw_circle(-dash_vector * 24.0, 32.0, Color("7df9ff", 0.18))
+		draw_line(-dash_vector * 60.0, dash_vector * 18.0, Color("d8ffff", 0.72), 5.0)
 	var marker_y := -88.0 + sin(pulse * 4.0) * 3.0
 	draw_circle(Vector2(0, marker_y + 5), 10, Color(0.20, 0.95, 0.84, 0.10))
 	draw_colored_polygon(PackedVector2Array([Vector2(0, marker_y - 7), Vector2(8, marker_y), Vector2(0, marker_y + 7), Vector2(-8, marker_y)]), Color("d8fff8"))
@@ -118,6 +161,7 @@ func draw_overhead_meters() -> void:
 
 func register_shot() -> void:
 	shoot_flash = 0.12
+	recoil_left = 0.08
 	queue_redraw()
 
 func show_level_up() -> void:

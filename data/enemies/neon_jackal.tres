@@ -10,3 +10,6 @@ health = 2.5
 speed = 170.0
 radius = 22.0
 damage = 8
+display_name = "Neon Jackal"
+behavior_id = "flank_leap"
+allowed_levels = ["signal_gate", "fractured_lane"]

@@ -18,8 +18,8 @@ func run() -> void:
 	root.add_child(game)
 	game.set_physics_process(false)
 	await process_frame
-	check(game.Catalog.UPGRADES.size() == 18 and game.Catalog.WEAPONS.size() == 3 and game.Catalog.MAPS.size() == 1, "content counts")
-	check(game.map_data == game.Catalog.MAPS[0], "vertical slice locks Neon Ruins")
+	check(game.Catalog.UPGRADES.size() == 18 and game.Catalog.WEAPONS.size() == 3 and game.Catalog.MAPS.size() == 5 and game.Catalog.REGULAR_ENEMIES.size() == 15 and game.Catalog.BOSSES.size() == 5, "content counts")
+	check(game.map_data == game.Catalog.map_by_id(game.Catalog.LEVELS[0].map_id), "first level selects its configured map")
 	game.sound.set_levels(0, 0)
 	game.director.spawn_left = INF
 	var before: Vector2 = game.player.position
@@ -35,6 +35,8 @@ func run() -> void:
 	enemy.position = Vector2(640, 1050)
 	enemy.spawn_protection = 0
 	check(game.nearest_enemy() == enemy, "nearest target")
+	game.damage_enemy(enemy, 0.1)
+	check(enemy.hit_impulse.x > 0.0, "weapon impacts queue knockback for regular enemies")
 	game.combat.fire_left = 0
 	var shots: Array = game.combat.fire(enemy, 1.0 / 60)
 	check(shots.size() == 1, "pulse single shot")

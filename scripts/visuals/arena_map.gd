@@ -67,6 +67,7 @@ func _draw() -> void:
 	draw_rect(arena, base.darkened(0.36))
 	draw_circle(arena.get_center(), maxf(arena.size.x, arena.size.y) * 0.42, Color(base.lightened(0.03), 0.28))
 	draw_circle(arena.get_center() + Vector2(120, -240), maxf(arena.size.x, arena.size.y) * 0.26, Color(accent, 0.035))
+	draw_theme_motif()
 	for island in islands:
 		draw_island(island)
 	for vein in veins:
@@ -77,6 +78,36 @@ func _draw() -> void:
 		draw_circle(at, 12.0, Color(accent, glow * 0.05))
 		draw_circle(at, 2.3, Color(accent, glow))
 	draw_boundary()
+
+func draw_theme_motif() -> void:
+	var center := arena.get_center()
+	match map_id:
+		"neon_ruins":
+			for index in range(7):
+				var x := arena.position.x + 90.0 + index * 135.0
+				draw_line(Vector2(x, arena.position.y + 55), Vector2(x + sin(phase + index) * 26.0, arena.end.y - 55), Color(accent, 0.075), 2.0)
+		"black_archive":
+			for index in range(9):
+				var row := index / 3
+				var col := index % 3
+				var rect := Rect2(arena.position + Vector2(90 + col * 300, 180 + row * 490), Vector2(190, 270))
+				draw_rect(rect, Color(accent, 0.025), true)
+				draw_rect(rect, Color(accent, 0.14), false, 1.5)
+		"solar_grid":
+			for index in range(6):
+				var radius := 110.0 + index * 112.0 + sin(phase * 1.6 + index) * 7.0
+				draw_arc(center, radius, -phase * 0.18 + index * 0.4, -phase * 0.18 + index * 0.4 + PI * 1.45, 40, Color(accent, 0.10), 2.0)
+		"void_garden":
+			for index in range(12):
+				var root := Vector2(arena.position.x + 60.0 + index * 82.0, arena.end.y - 55.0)
+				var tip := root + Vector2(sin(phase * 0.6 + index) * 90.0, -260.0 - (index % 3) * 95.0)
+				draw_line(root, tip, Color(accent, 0.11), 3.0)
+				draw_circle(tip, 9.0 + sin(phase + index) * 2.0, Color(accent, 0.16))
+		"replay_core":
+			for index in range(5):
+				var radius := 115.0 + index * 104.0
+				draw_arc(center, radius, phase * (0.28 + index * 0.04), phase * (0.28 + index * 0.04) + TAU * 0.72, 48, Color(accent, 0.13), 3.0)
+			draw_circle(center, 54.0 + sin(phase * 2.2) * 6.0, Color(accent, 0.10))
 
 func draw_island(data: Dictionary) -> void:
 	var center: Vector2 = data.center

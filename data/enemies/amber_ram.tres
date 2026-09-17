@@ -10,3 +10,6 @@ health = 5
 speed = 85.0
 radius = 29.0
 damage = 8
+display_name = "Amber Ram"
+behavior_id = "telegraph_charge"
+allowed_levels = ["signal_gate"]

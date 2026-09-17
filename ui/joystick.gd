@@ -8,6 +8,7 @@ var finger: int = -1
 var direction: Vector2 = Vector2.ZERO
 var center: Vector2 = Vector2.ZERO
 var fade: float = 0.0
+var render_feedback: bool = false
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
@@ -45,7 +46,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	if fade <= 0.01 or center == Vector2.ZERO:
+	if not render_feedback or fade <= 0.01 or center == Vector2.ZERO:
 		return
 	var alpha := fade * (0.72 if finger != -1 else 0.32)
 	draw_circle(center, RADIUS, Color(0.03, 0.10, 0.18, alpha * 0.64))

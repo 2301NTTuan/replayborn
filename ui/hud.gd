@@ -31,6 +31,7 @@ var chrono_button: Button
 var combo_label: Label
 var pickup_label: Label
 var pickup_left: float = 0.0
+var minimal_hud: bool = true
 
 func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
 	return source[key] if source.has(key) else fallback
@@ -74,10 +75,10 @@ func compact_pause_button(parent: Control) -> Button:
 
 func chrono_shift_button(parent: Control) -> Button:
 	var button := Button.new()
-	button.position = Vector2(730, 1710)
-	button.size = Vector2(300, 88)
-	button.custom_minimum_size = Vector2(300, 88)
-	button.add_theme_font_size_override("font_size", 20)
+	button.position = Vector2(824, 1650)
+	button.size = Vector2(208, 208)
+	button.custom_minimum_size = Vector2(208, 208)
+	button.add_theme_font_size_override("font_size", 22)
 	button.tooltip_text = "Space"
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		var fill := Color("17244b")
@@ -87,7 +88,7 @@ func chrono_shift_button(parent: Control) -> Button:
 		elif state == "disabled":
 			fill = Color("101a2d")
 			border = Color("36506b")
-		var style := UI.box(fill, 12, border, 2)
+		var style := UI.box(fill, 104, border, 3)
 		style.set_content_margin_all(0)
 		button.add_theme_stylebox_override(state, style)
 	button.pressed.connect(game.activate_chrono_shift)
@@ -130,6 +131,7 @@ func bind_game(owner_game: Node) -> void:
 	replay_panel.size = Vector2(86, 56)
 	replay_panel.add_theme_stylebox_override("panel", UI.box(Color("181126", 0.96), 8, Color("70528f"), 1))
 	run_panel.add_child(replay_panel)
+	replay_panel.hide()
 	var run_caption := UI.label(root_control, t("run_status"), 16)
 	run_caption.position = Vector2(58, 27)
 	run_caption.size = Vector2(220, 18)
@@ -275,6 +277,28 @@ func bind_game(owner_game: Node) -> void:
 	overlay_title.add_theme_color_override("font_color", Color("effbff"))
 	body = UI.column(overlay_panel, Rect2(38, 194, 920, 1398))
 	overlay.hide()
+	# Combat readability pass: the player-owned HP/XP meters are the only live
+	# telemetry. Keep the pause affordance, but remove every screen-edge widget
+	# that competes with the arena.
+	# Do not fade the parent: Pause is its child and must remain visible/clickable.
+	run_panel.add_theme_stylebox_override("panel", UI.box(Color.TRANSPARENT, 0, Color.TRANSPARENT, 0))
+	run_caption.hide()
+	clock_label.hide()
+	gold_label.hide()
+	stats_label.hide()
+	health_bar.hide()
+	xp_progress.hide()
+	memory_label.hide()
+	memory_caption.hide()
+	circuit_ring.hide()
+	combo_label.hide()
+	chrono_button.show()
+	boss_label.hide()
+	boss_progress.hide()
+	announcement.hide()
+	announcement_panel.hide()
+	pickup_label.hide()
+	debug_label.hide()
 	refresh()
 
 func refresh() -> void:
@@ -297,8 +321,8 @@ func refresh() -> void:
 		combo_label.add_theme_color_override("font_color", Color("ffd26a"))
 	var ready: bool = game.player.can_chrono_shift()
 	chrono_button.disabled = not ready
-	chrono_button.text = "⌁  %s  %s" % [t("chrono_shift"), t("chrono_ready") if ready else "%d%%" % roundi(game.player.chrono_shift_ratio() * 100.0)]
-	if is_instance_valid(game.boss) and not game.boss.dead:
+	chrono_button.text = "DASH\n%s" % ["READY" if ready else "%.1fs" % game.player.dash_cooldown]
+	if not minimal_hud and is_instance_valid(game.boss) and not game.boss.dead:
 		var boss_name: String = game.boss.spec.title_en if game.profile.data.language == "en" else game.boss.spec.title_vi
 		boss_label.text = t("boss_hp") % [boss_name, ceili(game.boss.health), ceili(game.boss.max_health)]
 		boss_progress.max_value = game.boss.max_health
@@ -435,6 +459,8 @@ func show_result() -> void:
 	UI.button(body, "⌂  " + t("home"), game.return_home)
 
 func announce(key: String) -> void:
+	if minimal_hud:
+		return
 	announcement.text = t(key) % (game.director.stage + 1) if key in ["boss_arrives", "level_cleared"] else t(key)
 	announcement_left = 2.5
 	announcement_panel.show()

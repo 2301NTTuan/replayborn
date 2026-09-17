@@ -1,12 +1,14 @@
 extends Control
 const UI = preload("res://ui/ui_kit.gd")
-const DISPLAY_FONT = preload("res://assets/fonts/CascadiaCode.ttf")
-const HEROINE_SHEET = preload("res://assets/original_v1/astria_run_v1.png")
+const Art = preload("res://ui/title_art.gd")
+const WORDMARK = preload("res://assets/ui/replayborn_wordmark.png")
 var profile: Node
 var body: VBoxContainer
 var back_button: Button
 var subpage_active: bool = false
 var home_deck: Control
+var launching: bool = false
+var launch_veil: ColorRect
 
 func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
 	return source[key] if source.has(key) else fallback
@@ -14,77 +16,95 @@ func dict_value(source: Dictionary, key: Variant, fallback: Variant) -> Variant:
 func _ready() -> void:
 	profile = get_node("/root/Profile")
 	theme = UI.theme()
-	body = UI.column(self, Rect2(64, 760, 952, 1072))
+	body = UI.column(self, Rect2(64, 220, 952, 1570))
+	var scroll: Control = body.get_parent()
+	scroll.anchor_right = 1
+	scroll.anchor_bottom = 1
+	scroll.offset_right = -64
+	scroll.offset_bottom = -80
 	back_button = UI.button(self, "←  " + t("back"), show_home, 82)
 	back_button.position = Vector2(54, 46)
-	back_button.size = Vector2(196, 62)
+	back_button.size = Vector2(196, 82)
 	back_button.hide()
+	resized.connect(queue_redraw)
 	show_home()
-	RenderingServer.set_default_clear_color(Color("090f1d"))
+	RenderingServer.set_default_clear_color(Color("050b14"))
 
 func t(key: String) -> String:
 	return UI.text(key, profile)
 
 func _draw() -> void:
-	draw_rect(Rect2(0, 0, 1080, 1920), Color("050812"))
-	draw_rect(Rect2(0, 0, 1080, 1920), Color("071827", 0.54))
-	for index in range(9):
-		var y := 170.0 + index * 165.0
-		draw_line(Vector2(0, y), Vector2(1080, y - 88.0), Color("16304a", 0.18), 2)
-	draw_circle(Vector2(820, 335), 430, Color("15334a", 0.46))
-	draw_circle(Vector2(822, 340), 260, Color("1a685f", 0.16))
-	draw_texture_rect_region(HEROINE_SHEET, Rect2(600, 164, 372, 494), Rect2(0, 0, HEROINE_SHEET.get_width() / 4, HEROINE_SHEET.get_height()), Color.WHITE)
-	draw_line(Vector2(64, 688), Vector2(1016, 688), Color("72f6d4", 0.64), 3)
-	draw_rect(Rect2(42, 720, 996, 1140), Color("070d18", 0.88))
-	draw_rect(Rect2(42, 720, 996, 1140), Color("24384f", 0.9), false, 1)
-	draw_string(DISPLAY_FONT, Vector2(64, 156), "REPLAYBORN", HORIZONTAL_ALIGNMENT_LEFT, -1, 76, Color("edf6ff"))
-	draw_string(DISPLAY_FONT, Vector2(68, 205), t("tagline"), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("72f6d4"))
-	draw_string(DISPLAY_FONT, Vector2(68, 330), "NEON RUINS", HORIZONTAL_ALIGNMENT_LEFT, -1, 48, Color("edf6ff"))
-	draw_string(DISPLAY_FONT, Vector2(70, 374), t("menu_status"), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("8fa7ba"))
-	draw_rect(Rect2(64, 470, 438, 112), Color("0c1624", 0.82))
-	draw_rect(Rect2(64, 470, 438, 112), Color("263c55"), false, 1)
-	draw_line(Vector2(86, 498), Vector2(194, 498), Color("f2c45b"), 3)
-	draw_string(DISPLAY_FONT, Vector2(86, 535), "ASTRIA", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, Color("edf6ff"))
-	draw_string(DISPLAY_FONT, Vector2(86, 565), t("runner_ready"), HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("9cb2c6"))
-	if subpage_active:
-		draw_rect(Rect2(0, 0, 1080, 1920), Color(0.012, 0.018, 0.032, 0.92))
+	draw_rect(Rect2(Vector2.ZERO, size), Color("050b14"))
+
+func clear_home() -> void:
+	if is_instance_valid(home_deck):
+		remove_child(home_deck)
+		home_deck.queue_free()
+		home_deck = null
 
 func show_home() -> void:
 	UI.clear(body)
-	body.hide()
-	if is_instance_valid(home_deck): home_deck.queue_free()
+	body.get_parent().hide()
+	clear_home()
 	home_deck = Control.new()
-	home_deck.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	home_deck.name = "TitleScreen"
 	add_child(home_deck)
+	home_deck.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	subpage_active = false
-	queue_redraw()
 	back_button.hide()
-	var top := Panel.new()
-	top.position = Vector2(42, 42); top.size = Vector2(996, 112)
-	top.add_theme_stylebox_override("panel", UI.box(Color("071625", 0.9), 16, Color("2d6279"), 1)); home_deck.add_child(top)
-	var profile_label := UI.label(top, "ASTRIA  ·  " + t("runner_ready"), 20)
-	profile_label.position = Vector2(28, 26); profile_label.size = Vector2(430, 56)
-	var currency := UI.label(top, "%d GOLD   %d CORE" % [profile.data.gold, profile.data.upgrade_core], 20, true)
-	currency.position = Vector2(540, 26); currency.size = Vector2(320, 56)
-	var settings := UI.button(top, t("settings"), show_settings, 58)
-	settings.position = Vector2(860, 24); settings.size = Vector2(112, 62); settings.add_theme_font_size_override("font_size", 16)
-	var mission := UI.label(home_deck, "SIGNAL GATE  ·  LEVEL 1", 22, true)
-	mission.position = Vector2(160, 650); mission.size = Vector2(760, 42); mission.add_theme_color_override("font_color", Color("72f6d4"))
-	var play := UI.primary_button(home_deck, t("play"), func() -> void: launch(false), 112)
-	play.position = Vector2(126, 704); play.size = Vector2(828, 112); play.add_theme_font_size_override("font_size", 34); play.grab_focus()
-	var practice := UI.button(home_deck, t("practice"), func() -> void: launch(true), 64)
-	practice.position = Vector2(330, 834); practice.size = Vector2(420, 64)
-	var nav := HBoxContainer.new()
-	nav.position = Vector2(48, 1700); nav.size = Vector2(984, 116); nav.add_theme_constant_override("separation", 16); home_deck.add_child(nav)
-	for entry in [[t("armory"), show_armory], [t("meta_upgrades"), show_player_upgrades], [t("practice"), func() -> void: launch(true)], [t("help"), show_help]]:
-		var nav_button := UI.button(nav, entry[0], entry[1], 104)
-		nav_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		nav_button.add_theme_font_size_override("font_size", 18)
-	var records := UI.label(home_deck, t("records") % [profile.data.runs, profile.data.wins, profile.data.kills], 18, true)
-	records.position = Vector2(120, 1580); records.size = Vector2(840, 30); records.add_theme_color_override("font_color", Color("a9c2d8"))
+	var art := Art.new()
+	art.reduced = bool(profile.data.reduced)
+	home_deck.add_child(art)
+	var wordmark := Art.picture(WORDMARK)
+	wordmark.name = "Wordmark"
+	# Image canvas has transparent padding: an atlas removes only that padding.
+	var letters := AtlasTexture.new()
+	letters.atlas = WORDMARK
+	letters.region = Rect2(0, 300, 1536, 440)
+	wordmark.texture = letters
+	Art.place(wordmark, home_deck, Rect2(0.07, 0.055, 0.86, 0.13))
+	var vi: bool = profile.data.language == "vi"
+	var subtitle := Art.caption("VIẾT LẠI VẬN MỆNH" if vi else "REWRITE YOUR FATE", 22, Color("b3d5e1"))
+	Art.place(subtitle, home_deck, Rect2(0.1, 0.18, 0.8, 0.035))
+	var play := Button.new()
+	play.name = "Play"
+	play.text = "CHƠI   ›" if vi else "PLAY   ›"
+	play.add_theme_font_override("font", ThemeDB.fallback_font)
+	play.add_theme_font_size_override("font_size", 36)
+	play.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var fill := Color("d5f5f5")
+		if state == "hover": fill = Color("ffffff")
+		if state == "pressed": fill = Color("78cdd8")
+		var box := UI.box(fill, 4, Color("ffffff"), 1)
+		if state == "focus":
+			box.bg_color = Color.TRANSPARENT
+			box.border_color = Color("77f1ff")
+			box.set_border_width_all(3)
+			box.set_expand_margin_all(7)
+		else:
+			box.shadow_color = Color(0.12, 0.7, 0.85, 0.16)
+			box.shadow_size = 24
+		play.add_theme_stylebox_override(state, box)
+	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		play.add_theme_color_override(state, Color("112a38"))
+	play.pressed.connect(func() -> void: launch(false))
+	Art.place(play, home_deck, Rect2(0.19, 0.825, 0.62, 0.064))
+	play.grab_focus()
+	var footer := Art.caption("R E P L A Y B O R N   /   " + str(ProjectSettings.get_setting("application/config/version")), 17, Color("7993a7"))
+	Art.place(footer, home_deck, Rect2(0.08, 0.947, 0.84, 0.025))
+	if not profile.data.reduced:
+		home_deck.modulate.a = 0.0
+		create_tween().tween_property(home_deck, "modulate:a", 1.0, 0.5)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if subpage_active and event.is_action_pressed("ui_cancel"):
+		show_home()
+		get_viewport().set_input_as_handled()
 
 func begin_subpage() -> void:
-	if is_instance_valid(home_deck): home_deck.queue_free()
+	clear_home()
+	body.get_parent().show()
 	body.show()
 
 func show_player_upgrades() -> void:
@@ -143,8 +163,24 @@ func show_armory() -> void:
 			UI.label(card, t("weapon_locked_%d" % index), 20, true)
 
 func launch(practice: bool) -> void:
+	if launching:
+		return
+	launching = true
 	profile.practice = practice
-	get_tree().change_scene_to_file("res://scenes/main.tscn")
+	launch_veil = ColorRect.new()
+	launch_veil.color = Color("050b14")
+	launch_veil.modulate.a = 0.0
+	Art.place(launch_veil, self, Rect2(0, 0, 1, 1))
+	var fade := create_tween()
+	fade.tween_property(launch_veil, "modulate:a", 1.0, 0.08 if profile.data.reduced else 0.3)
+	fade.tween_callback(_open_game)
+
+func _open_game() -> void:
+	var error := get_tree().change_scene_to_file("res://scenes/main.tscn")
+	if error != OK:
+		launching = false
+		launch_veil.queue_free()
+		push_error("Cannot open gameplay: %s" % error)
 
 func show_settings() -> void:
 	begin_subpage()

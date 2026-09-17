@@ -110,7 +110,9 @@ func _draw() -> void:
 	if level_up_time > 0.0:
 		var alpha := clampf(level_up_time / 0.35, 0.0, 1.0)
 		var language: String = game.profile.data.language if game != null and game.profile != null else "en"
-		draw_string(DISPLAY_FONT, Vector2(-58, -112 - (1.0 - alpha) * 12.0), Words.get_text("level_up", language), HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1.0, 0.82, 0.32, alpha))
+		# Keep the level-up callout above both overhead meters; it must never fight
+		# the HP/XP information for the same small space over the player.
+		draw_string(DISPLAY_FONT, Vector2(-58, -166 - (1.0 - alpha) * 12.0), Words.get_text("level_up", language), HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1.0, 0.82, 0.32, alpha))
 		draw_arc(Vector2.ZERO, 52.0 + (1.0 - alpha) * 18.0, 0, TAU, 32, Color(1.0, 0.82, 0.32, alpha * 0.7), 3)
 	if dash_left > 0.0:
 		draw_circle(-dash_vector * 24.0, 32.0, Color("7df9ff", 0.18))
